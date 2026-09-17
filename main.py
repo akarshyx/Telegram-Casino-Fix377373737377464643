@@ -647,6 +647,7 @@ processed_deposit_txids: set = set()
 _processed_payments_lock = threading.Lock()
 _deposit_in_flight: set = set()   # payments currently inside _process_confirmed_deposit
 _deposit_notification_in_flight: set = set()  # (payment_id, notification_kind) claims
+_nowpayments_monitor_lock = asyncio.Lock()
 PROCESSED_PAYMENTS_FILE = "processed_payments.json"
 PROCESSED_DEPOSIT_TXIDS_FILE = "processed_deposit_txids.json"
 
@@ -1149,75 +1150,127 @@ def nowpayments_callback():
         logger.info(f"IPN status '{payment_status}' — no action needed")
         return jsonify({"status": "ok"}), 200
 
-    # Dedup — never credit the same payment_id twice (uses persistent processed_payment_ids)
-    # Lock prevents two simultaneous IPN/poll calls for the same payment_id both slipping through
+    # A signed webhook is only a notification. Independently fetch the
+    # provider record and match it against the exact persisted payment session
+    # before choosing a user or amount.
+    if not payment_id:
+        logger.error("[IPN] Missing payment_id — refusing to credit")
+        return jsonify({"status": "missing_payment_id"}), 400
+
+    _status_checker = globals().get("nowpayments_get_payment_status")
+    if _status_checker is None:
+        logger.error(
+            f"[IPN] Provider status checker is not ready for payment={payment_id}"
+        )
+        return jsonify({"status": "provider_verification_pending"}), 503
+    provider_data, provider_error = _status_checker(payment_id)
+    if provider_error or not isinstance(provider_data, dict):
+        logger.warning(
+            f"[IPN] Provider verification unavailable for payment={payment_id}: "
+            f"{provider_error or 'empty response'}"
+        )
+        return jsonify({"status": "provider_verification_pending"}), 503
+
+    _pending_finder = globals().get("_find_pending_nowpayments_deposit")
+    pending = _pending_finder(payment_id, order_id) if _pending_finder else None
+    if not pending:
+        logger.error(
+            f"[IPN] No persisted pending deposit for payment={payment_id} "
+            f"order={order_id}; refusing to credit"
+        )
+        return jsonify({"status": "pending_record_missing"}), 202
+
+    saved_order_id = str(pending.get("order_id") or "").strip()
+    provider_order_id = str(provider_data.get("order_id") or order_id or "").strip()
+    if saved_order_id and provider_order_id and saved_order_id != provider_order_id:
+        logger.error(
+            f"[IPN] Order mismatch payment={payment_id}: "
+            f"saved={saved_order_id} provider={provider_order_id}"
+        )
+        return jsonify({"status": "order_mismatch"}), 200
+
+    expected_address = str(
+        pending.get("pay_address") or pending.get("deposit_address") or ""
+    ).strip()
+    provider_address = str(
+        provider_data.get("pay_address") or provider_data.get("address") or ""
+    ).strip()
+    if not expected_address or not provider_address or (
+        _normalise_payment_address(expected_address)
+        != _normalise_payment_address(provider_address)
+    ):
+        logger.error(
+            f"[IPN] Address mismatch payment={payment_id}; "
+            f"saved={expected_address or 'missing'} "
+            f"provider={provider_address or 'missing'}"
+        )
+        pending["status"] = "address_mismatch"
+        pending["last_error"] = "provider address did not match saved deposit address"
+        save_data_critical()
+        return jsonify({"status": "address_mismatch"}), 200
+
+    expected_currency = str(
+        pending.get("pay_currency") or pending.get("crypto") or ""
+    ).strip().casefold()
+    provider_currency = str(provider_data.get("pay_currency") or "").strip().casefold()
+    if expected_currency and provider_currency and expected_currency != provider_currency:
+        logger.error(
+            f"[IPN] Currency/network mismatch payment={payment_id}: "
+            f"saved={expected_currency} provider={provider_currency}"
+        )
+        pending["status"] = "currency_mismatch"
+        pending["last_error"] = "provider currency did not match saved deposit currency"
+        save_data_critical()
+        return jsonify({"status": "currency_mismatch"}), 200
+
+    expected_network = str(pending.get("network") or "").strip().casefold()
+    provider_network = str(provider_data.get("network") or "").strip().casefold()
+    if expected_network and provider_network and expected_network != provider_network:
+        logger.error(
+            f"[IPN] Network mismatch payment={payment_id}: "
+            f"saved={expected_network} provider={provider_network}"
+        )
+        pending["status"] = "network_mismatch"
+        pending["last_error"] = "provider network did not match saved deposit network"
+        save_data_critical()
+        return jsonify({"status": "network_mismatch"}), 200
+
+    provider_status = str(provider_data.get("payment_status") or "").lower()
+    if provider_status not in ("finished", "confirmed"):
+        logger.info(
+            f"[IPN] Provider verification is not final yet: "
+            f"payment={payment_id} status={provider_status or 'unknown'}"
+        )
+        return jsonify({"status": "pending_confirmation"}), 200
+    if not _nowpayments_has_received_transaction(provider_data):
+        logger.warning(
+            f"[IPN] Final status without on-chain evidence payment={payment_id}; "
+            "leaving pending"
+        )
+        return jsonify({"status": "pending_onchain_evidence"}), 200
+
+    # Dedup is checked without pre-marking. The authoritative processor
+    # persists the payment ID immediately after the balance write and removes
+    # it from the retry path only after successful processing.
     with _processed_payments_lock:
-        if payment_id and payment_id in processed_payment_ids:
+        if payment_id in processed_payment_ids:
             logger.info(f"Payment {payment_id} already processed — skipping")
             return jsonify({"status": "already processed"}), 200
-        if payment_id:
-            processed_payment_ids.add(payment_id)
 
     try:
-        # Extract user_id from order_id — supports formats:
-        # dep_USERID_TIMESTAMP, deposit_USERID_TIMESTAMP, USERID_TIMESTAMP
-        user_id = None
-        if order_id:
-            for prefix in ('dep_', 'deposit_'):
-                if order_id.startswith(prefix):
-                    parts = order_id[len(prefix):].split('_')
-                    user_id = parts[0]
-                    break
-            if not user_id:
-                parts = order_id.split('_')
-                if len(parts) >= 2 and parts[0].isdigit():
-                    user_id = parts[0]
+        # Resolve the user only from the persisted payment record. The provider
+        # order ID is for reconciliation, not arbitrary account selection.
+        user_id = str(pending.get("user_id") or "").strip()
+        if not user_id.isdigit():
+            logger.error(
+                f"[IPN] Persisted deposit has no valid user: payment={payment_id}"
+            )
+            return jsonify({"status": "pending_user_mapping"}), 202
 
-        if not user_id or not str(user_id).isdigit():
-            logger.error(f"[IPN] Cannot extract valid numeric user_id from order_id '{order_id}' (got {user_id!r})")
-            return jsonify({"status": "ok"}), 200
-
-        pay_currency   = payload.get('pay_currency', 'USDT').upper()
-        price_currency = payload.get('price_currency', 'usd').lower()
-
-        # Derive the real USD amount from what was actually received.
-        # price_amount is always 1.0 (our hardcoded minimum) so it is NOT authoritative.
-        # actually_paid is the raw crypto amount received — convert to USD using live rate.
-        # Also check outcome.amount_received / outcome.amount_received_usd (some IPN versions).
-        _outcome        = payload.get('outcome') or {}
-        coin_amount     = float(payload.get('actually_paid') or payload.get('pay_amount')
-                                or _outcome.get('amount_received') or 0)
-        price_amount_raw = float(payload.get('price_amount') or 0)
-        # outcome.amount_received_usd is the most authoritative USD value when present
-        _ipn_usd_direct = float(_outcome.get('amount_received_usd') or 0)
-
-        if _ipn_usd_direct > 0:
-            usd_amount = round(_ipn_usd_direct, 2)
-            logger.info(f"[IPN] Amount: outcome.amount_received_usd=${usd_amount:.2f} (direct from NOWPayments)")
-        elif coin_amount > 0:
-            # Convert received crypto amount to USD using live rates
-            rate = _resolve_deposit_rate(pay_currency)
-            if rate and rate > 0:
-                usd_amount = round(coin_amount * rate, 2)
-                logger.info(f"[IPN] Amount: {coin_amount} {pay_currency} × ${rate:.6f} = ${usd_amount:.2f} USD")
-            elif price_amount_raw >= 1.0:
-                # Fallback: price_amount is the USD amount requested — use it
-                usd_amount = price_amount_raw
-                logger.info(f"[IPN] Amount: using price_amount=${usd_amount:.2f} (no live rate for {pay_currency})")
-            else:
-                # Cannot safely determine amount — log clearly and skip rather than
-                # crediting a wildly wrong amount (e.g. 1M BONK → $1M)
-                logger.error(
-                    f"[IPN] ❌ Cannot determine USD value for {coin_amount} {pay_currency} "
-                    f"— no rate in CURRENCY_RATES and price_amount={price_amount_raw}. "
-                    f"Poll will retry once rate is available."
-                )
-                usd_amount = 0
-        elif price_amount_raw >= 1.0:
-            usd_amount = price_amount_raw
-            logger.info(f"[IPN] Amount: no coin_amount, using price_amount=${usd_amount:.2f}")
-        else:
-            usd_amount = 0
+        pay_currency = str(provider_data.get("pay_currency") or "USDT").upper()
+        usd_amount, coin_amount, _ = _nowpayments_received_amount(
+            provider_data, pending
+        )
 
         logger.info(f"[IPN] ⚡ TX detected: order={order_id} payment_id={payment_id} coin={coin_amount} {pay_currency} usd=${usd_amount:.2f}")
 
@@ -1228,7 +1281,15 @@ def nowpayments_callback():
         fee_amount      = round(usd_amount * DEPOSIT_FEE_RATE, 2)
         credited_amount = round(usd_amount - fee_amount, 2)
 
-        txid = payload.get('outcome', {}).get('txid') or payload.get('payin_hash') or payload.get('txid') or ''
+        provider_outcome = provider_data.get("outcome") or {}
+        if not isinstance(provider_outcome, dict):
+            provider_outcome = {}
+        txid = (
+            provider_data.get("payin_hash")
+            or provider_outcome.get("txid")
+            or provider_data.get("txid")
+            or ""
+        )
         logger.info(
             f"[IPN] ✅ Deposit received: user={user_id} gross=${usd_amount:.2f} "
             f"fee=${fee_amount:.2f} credited=${credited_amount:.2f} "
@@ -4662,7 +4723,12 @@ def nowpayments_get_payment_status(payment_id: str):
         response = requests.get(f"{NOWPAYMENTS_API_URL}/payment/{payment_id}", headers=headers, timeout=15)
         if response.status_code == 200:
             return response.json(), None
-        return None, "Failed to get payment status"
+        try:
+            details = response.json()
+            message = details.get("message") or details.get("error")
+        except (ValueError, TypeError):
+            message = None
+        return None, message or f"Failed to get payment status (HTTP {response.status_code})"
     except Exception as e:
         return None, str(e)
 
@@ -4698,28 +4764,72 @@ def _track_nowpayments_pending_deposit(
         return False
 
     created = float(created_at if created_at is not None else time.time())
-    existing = nowpayments_pending_deposits.get(payment_id, {})
-    nowpayments_pending_deposits[payment_id] = {
-        **existing,
-        "user_id": str(user_id),
-        "username": username or existing.get("username", ""),
-        "crypto": str(crypto or existing.get("crypto", "")).lower(),
-        "order_id": str(
-            payment_data.get("order_id") or order_id or existing.get("order_id", "")
-        ),
-        "payment_id": payment_id,
-        "pay_address": pay_address,
-        "amount_usd": float(payment_data.get("price_amount") or existing.get("amount_usd") or 0),
-        "created_at": float(existing.get("created_at") or created),
-        "expires_at": float(existing.get("expires_at") or (created + EXP_SECONDS)),
-        "status": existing.get("status", "waiting"),
-    }
-    save_data()
+    with _processed_payments_lock:
+        existing = nowpayments_pending_deposits.get(payment_id, {})
+        nowpayments_pending_deposits[payment_id] = {
+            **existing,
+            "user_id": str(user_id),
+            "username": username or existing.get("username", ""),
+            "crypto": str(crypto or existing.get("crypto", "")).lower(),
+            "pay_currency": str(
+                payment_data.get("pay_currency")
+                or crypto
+                or existing.get("pay_currency", "")
+            ).lower(),
+            "network": payment_data.get("network") or existing.get("network", ""),
+            "order_id": str(
+                payment_data.get("order_id") or order_id or existing.get("order_id", "")
+            ),
+            "payment_id": payment_id,
+            "pay_address": pay_address,
+            "expected_coin_amount": float(
+                payment_data.get("pay_amount")
+                or existing.get("expected_coin_amount")
+                or 0
+            ),
+            "amount_usd": float(
+                payment_data.get("price_amount")
+                or existing.get("amount_usd")
+                or 0
+            ),
+            "created_at": float(existing.get("created_at") or created),
+            "expires_at": float(existing.get("expires_at") or (created + EXP_SECONDS)),
+            "status": existing.get("status", "waiting"),
+            "state": existing.get("state", "WAITING_FOR_PAYMENT"),
+            "last_error": existing.get("last_error", ""),
+        }
+    # The address/user/payment association must exist before the address is
+    # shown to the player. A background save is not sufficient here.
+    save_data_critical()
     logger.info(
         "[TRACKING] Registered active NOWPayments deposit "
         f"payment={payment_id} user={user_id} address={pay_address}"
     )
     return True
+
+def _find_pending_nowpayments_deposit(payment_id: str, order_id: str = "") -> dict | None:
+    """Find a persisted deposit by provider payment ID, then exact order ID."""
+    payment_id = str(payment_id or "").strip()
+    order_id = str(order_id or "").strip()
+    dep = nowpayments_pending_deposits.get(payment_id)
+    if isinstance(dep, dict):
+        return dep
+    if order_id:
+        for candidate in nowpayments_pending_deposits.values():
+            if (
+                isinstance(candidate, dict)
+                and str(candidate.get("order_id") or "").strip() == order_id
+            ):
+                return candidate
+    return None
+
+async def _run_nowpayments_monitor_once() -> int:
+    """Prevent overlapping poll passes from racing the same payment."""
+    if _nowpayments_monitor_lock.locked():
+        logger.info("[POLL-EXACT] Previous monitor pass still running; skipping overlap")
+        return 0
+    async with _nowpayments_monitor_lock:
+        return await monitor_active_nowpayments_deposits()
 
 def _extract_pending_deposit_user_id(dep: dict, status_data: dict) -> str:
     """Resolve the user from trusted pending state, then the provider order ID."""
@@ -4761,7 +4871,6 @@ def _nowpayments_received_amount(status_data: dict, dep: dict) -> tuple[float, f
     coin_amount = _safe_float(
         status_data.get("actually_paid")
         or outcome.get("amount_received")
-        or status_data.get("pay_amount")
     )
     price_amount = _safe_float(
         status_data.get("price_amount")
@@ -4775,8 +4884,9 @@ def _nowpayments_received_amount(status_data: dict, dep: dict) -> tuple[float, f
         rate = _resolve_deposit_rate(pay_currency)
         if rate and rate > 0:
             return round(coin_amount * rate, 2), coin_amount, pay_currency
-    if price_amount >= 1.0:
-        return round(price_amount, 2), coin_amount, pay_currency
+    # Do not substitute the requested amount when the provider has not
+    # reported an actually received amount. A txid without a received amount
+    # is not sufficient evidence to credit an under/overpayment safely.
     return 0.0, coin_amount, pay_currency
 
 def _nowpayments_has_received_transaction(status_data: dict) -> bool:
@@ -4787,13 +4897,12 @@ def _nowpayments_has_received_transaction(status_data: dict) -> bool:
     outcome = status_data.get("outcome") or {}
     if not isinstance(outcome, dict):
         outcome = {}
-    return bool(
-        _safe_float(status_data.get("actually_paid") or outcome.get("amount_received")) > 0
-        or _safe_float(outcome.get("amount_received_usd")) > 0
-        or status_data.get("payin_hash")
-        or status_data.get("txid")
-        or outcome.get("txid")
+    received_amount = _safe_float(
+        status_data.get("actually_paid") or outcome.get("amount_received")
     )
+    received_usd = _safe_float(outcome.get("amount_received_usd"))
+    txid = status_data.get("payin_hash") or status_data.get("txid") or outcome.get("txid")
+    return bool((received_amount > 0 or received_usd > 0) and txid)
 
 async def monitor_active_nowpayments_deposits() -> int:
     """Poll each exact deposit address for one hour and credit only confirmed funds."""
@@ -4880,8 +4989,41 @@ async def monitor_active_nowpayments_deposits() -> int:
             dep["last_status_at"] = now
             changed = True
 
+        expected_currency = str(
+            dep.get("pay_currency") or dep.get("crypto") or ""
+        ).strip().casefold()
+        provider_currency = str(
+            status_data.get("pay_currency") or ""
+        ).strip().casefold()
+        if expected_currency and provider_currency and expected_currency != provider_currency:
+            dep["status"] = "currency_mismatch"
+            dep["state"] = "REVIEW_REQUIRED"
+            dep["last_error"] = "provider currency did not match saved deposit currency"
+            changed = True
+            logger.error(
+                f"[POLL-EXACT] Currency mismatch payment={payment_id}: "
+                f"saved={expected_currency} provider={provider_currency}"
+            )
+            continue
+
+        expected_network = str(dep.get("network") or "").strip().casefold()
+        provider_network = str(status_data.get("network") or "").strip().casefold()
+        if expected_network and provider_network and expected_network != provider_network:
+            dep["status"] = "network_mismatch"
+            dep["state"] = "REVIEW_REQUIRED"
+            dep["last_error"] = "provider network did not match saved deposit network"
+            changed = True
+            logger.error(
+                f"[POLL-EXACT] Network mismatch payment={payment_id}: "
+                f"saved={expected_network} provider={provider_network}"
+            )
+            continue
+
         received = _nowpayments_has_received_transaction(status_data)
         if received:
+            if dep.get("state") != "PAYMENT_DETECTED":
+                dep["state"] = "PAYMENT_DETECTED"
+                changed = True
             detected_user_id = _extract_pending_deposit_user_id(dep, status_data)
             if not dep.get("detected_at"):
                 dep["detected_at"] = now
@@ -4930,6 +5072,10 @@ async def monitor_active_nowpayments_deposits() -> int:
             )
             continue
 
+        if dep.get("state") != "CONFIRMING":
+            dep["state"] = "CONFIRMING"
+            changed = True
+
         fee_amount = round(usd_amount * DEPOSIT_FEE_RATE, 2)
         credited_amount = round(usd_amount - fee_amount, 2)
         outcome = status_data.get("outcome") or {}
@@ -4955,6 +5101,7 @@ async def monitor_active_nowpayments_deposits() -> int:
         )
         if ok:
             dep["status"] = "credited"
+            dep["state"] = "CREDITED"
             dep["credited_at"] = time.time()
             credited_count += 1
             changed = True
@@ -4963,13 +5110,17 @@ async def monitor_active_nowpayments_deposits() -> int:
                 f"payment={payment_id} txid={txid or 'n/a'}"
             )
         else:
+            dep["state"] = "CREDIT_RETRY"
+            changed = True
             logger.error(
                 f"[POLL-EXACT] Processing failed payment={payment_id}; "
                 "will retry on the next poll"
             )
 
     if changed:
-        save_data()
+        # Persist status transitions and notification retry markers before the
+        # monitor pass returns. A restart must see the same pending state.
+        await asyncio.to_thread(save_data_critical)
     return credited_count
 
 def nowpayments_list_payments(limit: int = 100, status: str = None) -> list:
@@ -4990,98 +5141,20 @@ def nowpayments_list_payments(limit: int = 100, status: str = None) -> list:
 
 def nowpayments_fetch_and_credit_confirmed(bot_token: str) -> int:
     """
-    Poll NowPayments API for all recent confirmed payments and auto-credit
-    any that haven't been processed yet.  Returns number of new credits applied.
+    Admin recovery scan for persisted exact-address payment sessions.
+
+    The old implementation scanned all provider payments and selected an
+    account from the provider order ID. That could credit a payment that was
+    never displayed to that account. Keep the admin command, but route it
+    through the same address-bound monitor used by the automatic worker.
     """
-    credited_count = 0
     try:
-        payments = nowpayments_list_payments(limit=100)
-        for pmt in payments:
-            ps = pmt.get("payment_status", "")
-            if ps not in ("finished", "confirmed"):
-                continue
-            payment_id = str(pmt.get("payment_id", ""))
-            if not payment_id:
-                continue
-            # Skip already processed
-            if payment_id in processed_payment_ids:
-                continue
-            # Extract user_id from order_id
-            order_id = str(pmt.get("order_id", "") or pmt.get("order_description", ""))
-            user_id = None
-            for prefix in ("dep_", "deposit_"):
-                if order_id.startswith(prefix):
-                    parts = order_id[len(prefix):].split("_")
-                    user_id = parts[0]
-                    break
-            if not user_id:
-                parts = order_id.split("_")
-                if len(parts) >= 2 and parts[0].isdigit():
-                    user_id = parts[0]
-            if not user_id or not user_id.isdigit():
-                logger.warning(f"[POLL-API] Cannot extract user_id from order_id '{order_id}' — skipping")
-                continue
-            pay_currency = str(pmt.get("pay_currency", "USDT")).upper()
-            coin_amount_poll = float(pmt.get("actually_paid") or pmt.get("pay_amount") or 0)
-            price_amount_poll = float(pmt.get("price_amount") or 0)
-
-            # Derive real USD amount from actually_paid crypto amount using live rates.
-            # price_amount is always 1.0 (our minimum) — NOT the actual deposit value.
-            if coin_amount_poll > 0:
-                _rate = _resolve_deposit_rate(pay_currency)
-                if _rate and _rate > 0:
-                    usd_amount = round(coin_amount_poll * _rate, 2)
-                elif price_amount_poll >= 1.0:
-                    usd_amount = price_amount_poll
-                else:
-                    logger.warning(
-                        f"[POLL-API] No rate for {pay_currency} coin={coin_amount_poll} "
-                        f"payment_id={payment_id} — skipping until rate available"
-                    )
-                    continue
-            elif price_amount_poll >= 1.0:
-                usd_amount = price_amount_poll
-            else:
-                usd_amount = 0
-
-            if usd_amount <= 0:
-                logger.warning(f"[POLL-API] Zero amount for payment_id={payment_id} order={order_id} — skipping")
-                continue
-
-            logger.info(f"[POLL-API] ⚡ TX detected: user={user_id} coin={coin_amount_poll} {pay_currency} usd=${usd_amount:.2f} payment_id={payment_id}")
-
-            # DO NOT add to processed_payment_ids before calling _process_confirmed_deposit.
-            # Preemptive add causes permanent lockout if processing fails.
-            # _process_confirmed_deposit handles dedup internally on success.
-            _poll_fee      = round(usd_amount * DEPOSIT_FEE_RATE, 2)
-            _poll_credited = round(usd_amount - _poll_fee, 2)
-            logger.info(
-                f"[POLL-API] 🔄 Processing started: user={user_id} gross=${usd_amount:.2f} "
-                f"credited=${_poll_credited:.2f} coin={coin_amount_poll} {pay_currency} "
-                f"payment_id={payment_id} status={ps} order={order_id}"
-            )
-            _poll_txid = str(pmt.get('payin_hash') or pmt.get('outcome', {}).get('txid') or pmt.get('txid') or '')
-            ok = _process_confirmed_deposit(
-                user_id=user_id,
-                usd_amount=usd_amount,
-                credited_amount=_poll_credited,
-                fee_amount=_poll_fee,
-                pay_currency=pay_currency,
-                payment_id=payment_id,
-                source='nowpayments_poll_api',
-                coin_amount=coin_amount_poll,
-                txid=_poll_txid,
-            )
-            if ok:
-                credited_count += 1
-                logger.info(f"[POLL-API] ✅ Balance credited ${_poll_credited:.2f} to user={user_id} payment_id={payment_id}")
-            else:
-                # Remove preemptive dedup so next poll can retry
-                processed_payment_ids.discard(payment_id)
-                logger.error(f"[POLL-API] ❌ Payment failed for user={user_id} payment_id={payment_id} — will retry next poll")
+        return asyncio.run(_run_nowpayments_monitor_once())
+    except RuntimeError as exc:
+        logger.error(f"[POLL-API] Cannot run exact recovery scan: {exc}")
     except Exception as e:
         logger.error(f"nowpayments_fetch_and_credit_confirmed error: {e}")
-    return credited_count
+    return 0
 
 def nowpayments_get_jwt_token():
     """Get JWT token for NOWPayments payout authentication."""
@@ -6391,7 +6464,7 @@ async def auto_save_task():
             if current_time - last_nowpayments_poll >= 15:
                 last_nowpayments_poll = current_time
                 try:
-                    new_credits = await monitor_active_nowpayments_deposits()
+                    new_credits = await _run_nowpayments_monitor_once()
                     if new_credits:
                         logger.info(
                             f"[POLL-EXACT] Credited {new_credits} new deposit(s)"
@@ -7794,6 +7867,16 @@ def _process_confirmed_deposit(
     user_id = str(user_id)
     inflight_keys = []
     try:
+        # Protect every caller, including older/manual recovery handlers that
+        # may not perform their own pre-check before reaching this function.
+        if payment_id:
+            with _processed_payments_lock:
+                if str(payment_id) in processed_payment_ids:
+                    logger.info(
+                        f"[DEPOSIT] Payment {payment_id} already processed — skipping"
+                    )
+                    return True
+
         # A provider payment ID protects normal webhook/poll races.  The txid
         # guard also protects against the same blockchain transaction appearing
         # under a second provider payment record.
@@ -7929,6 +8012,8 @@ def _process_confirmed_deposit(
         #    the nowpayments_pending_deposits status flag for tracking purposes.
         if payment_id and payment_id in nowpayments_pending_deposits:
             nowpayments_pending_deposits[payment_id]['status'] = 'credited'
+            nowpayments_pending_deposits[payment_id]['state'] = 'CREDITED'
+            nowpayments_pending_deposits[payment_id]['credited_at'] = time.time()
             logger.info(f"[DEPOSIT] Marked nowpayments_pending_deposits[{payment_id}] = credited")
 
         # 9. Activate any pending bonus claim for this user
@@ -13466,18 +13551,18 @@ async def handle_nowpayments_deposit(query, context: ContextTypes.DEFAULT_TYPE, 
     pay_amount = payment_data.get('pay_amount', 0)
     payment_id = payment_data.get('payment_id', '')
     
-    # Store pending deposit for tracking
-    nowpayments_pending_deposits[str(payment_id)] = {
-        "user_id": user_id,
-        "username": username,
-        "crypto": np_code,
-        "order_id": order_id,
-        "payment_id": payment_id,
-        "pay_address": pay_address,
-        "created_at": time.time(),
-        "status": "waiting"
-    }
-    save_data()
+    if not _track_nowpayments_pending_deposit(
+        payment_data,
+        user_id=user_id,
+        crypto=np_code,
+        username=username,
+        order_id=order_id,
+    ):
+        await query.edit_message_text(
+            "❌ The payment address could not be safely registered. Please try again.",
+            parse_mode=ParseMode.HTML,
+        )
+        return
     
     keyboard = [
         [InlineKeyboardButton("🔗 Report Stuck Deposit", callback_data=f"stuck_deposit_{payment_id}")],
@@ -14199,28 +14284,44 @@ async def handle_crypto_network_deposit_selection(query, context: ContextTypes.D
     network_name = NETWORK_INFO.get(network, network)
     deposit_address = CRYPTO_DEPOSIT_ADDRESSES[crypto][network]['address']
     
-    # Create NOWPayments invoice for automatic deposit detection
+    # Create a provider payment, not an invoice/static address. The exact
+    # address returned by NOWPayments is what the monitor must watch.
     order_id = f"deposit_{user_id}_{int(time.time())}"
     np_currency = NOWPAYMENTS_CURRENCY_MAP.get(crypto, {}).get(network, crypto.lower())
     
-    invoice_data, error = nowpayments_create_invoice(
+    payment_data, error = nowpayments_create_payment(
         amount_usd=float(crypto_info['min_deposit']),
+        pay_currency=np_currency,
         order_id=order_id,
         order_desc=f"Casino deposit - {crypto} on {network_name}"
     )
+    if error or not payment_data:
+        await query.edit_message_text(
+            f"❌ Could not create the {crypto} deposit address. Please try again later.",
+            parse_mode=ParseMode.HTML,
+        )
+        return
+    deposit_address = str(payment_data.get("pay_address") or "").strip()
+    if not deposit_address:
+        await query.edit_message_text(
+            "❌ The provider did not return a deposit address. Please try again later.",
+            parse_mode=ParseMode.HTML,
+        )
+        return
     
-    # Store pending deposit for tracking
-    nowpayments_pending_deposits[order_id] = {
-        "user_id": user_id,
-        "username": username,
-        "crypto": crypto,
-        "network": network,
-        "order_id": order_id,
-        "deposit_address": deposit_address,
-        "created_at": time.time(),
-        "status": "waiting"
-    }
-    save_data()
+    payment_data["network"] = network
+    if not _track_nowpayments_pending_deposit(
+        payment_data,
+        user_id=user_id,
+        crypto=np_currency,
+        username=username,
+        order_id=order_id,
+    ):
+        await query.edit_message_text(
+            "❌ The payment address could not be safely registered. Please try again.",
+            parse_mode=ParseMode.HTML,
+        )
+        return
     
     # Generate QR code URL
     qr_code_url = f"https://api.qrserver.com/v1/create-qr-code/?size=400x400&data={deposit_address}&margin=2"
@@ -27716,17 +27817,18 @@ async def try_manager_action(update: Update, context: ContextTypes.DEFAULT_TYPE,
         pay_amount = payment_data.get('pay_amount', 0)
         payment_id = payment_data.get('payment_id', '')
 
-        nowpayments_pending_deposits[str(payment_id)] = {
-            "user_id": target_uid,
-            "username": target_name,
-            "crypto": np_code,
-            "order_id": order_id,
-            "payment_id": payment_id,
-            "pay_address": pay_address,
-            "created_at": time.time(),
-            "status": "waiting"
-        }
-        save_data()
+        if not _track_nowpayments_pending_deposit(
+            payment_data,
+            user_id=target_uid,
+            crypto=np_code,
+            username=target_name,
+            order_id=order_id,
+        ):
+            await update.message.reply_text(
+                "❌ The payment address could not be safely registered. Please try again.",
+                parse_mode=ParseMode.HTML,
+            )
+            return True
 
         deposit_caption = (
             f"💚 <b>Top-up {display_name}</b>\n\n"
@@ -35233,17 +35335,18 @@ async def handle_group_deposit_request(update: Update, context: ContextTypes.DEF
     payment_id = payment_data.get('payment_id', '')
     user_name = update.message.from_user.first_name or "Player"
 
-    nowpayments_pending_deposits[str(payment_id)] = {
-        "user_id": user_id,
-        "username": user_name,
-        "crypto": np_code,
-        "order_id": f"dep_{user_id}_{int(time.time())}",
-        "payment_id": payment_id,
-        "pay_address": pay_address,
-        "created_at": time.time(),
-        "status": "waiting"
-    }
-    save_data()
+    if not _track_nowpayments_pending_deposit(
+        payment_data,
+        user_id=user_id,
+        crypto=np_code,
+        username=user_name,
+        created_at=time.time(),
+    ):
+        await update.message.reply_text(
+            "❌ The payment address could not be safely registered. Please try again.",
+            parse_mode=ParseMode.HTML,
+        )
+        return
 
     deposit_caption = (
         f"💚 <b>Top-up {display_name}</b>\n\n"
