@@ -1,0 +1,36 @@
+FIX MY PROJECT COMPLETELY FOR VPS DEPLOYMENT. DO NOT ADD ANY NEW FEATURES AND DO NOT BREAK ANY EXISTING CASINO FUNCTIONALITY.
+
+I am deploying this Telegram casino on a NexCloud/Pterodactyl VPS running Python 3.11.6. The server currently has these errors:
+
+ERROR: Could not find a version that satisfies the requirement sportsbook
+
+ERROR: No matching distribution found for sportsbook
+
+and:
+
+/usr/local/bin/python: can't open file '/home/container/main.py': [Errno 2] No such file or directory
+
+I DO NOT WANT SPORTSBOOK OR ANY SPORTS-BETTING FEATURE IN THIS CASINO.
+
+First, inspect the entire repository and all files. Then:
+
+1. Find and completely remove all sportsbook-specific dependencies, files, imports, code, configuration, API references, handlers, routes, commands, database components, callbacks, and startup references.
+2. Search for variations such as sportsbook, sports_book, sports-book, and similar references.
+3. Remove only sportsbook/sports-betting functionality. DO NOT remove unrelated casino games or features.
+4. Clean requirements.txt and every other dependency file. There must be no invalid sportsbook package and no unnecessary/duplicate dependencies.
+5. Check the VPS startup scripts and make sure the stale PY_PACKAGES environment variable cannot inject sportsbook. The project must rely on the project’s valid dependency file.
+6. Find the actual entry-point file for my Telegram bot. Do NOT assume it is main.py and do NOT create a fake main.py. Configure the startup process to launch the real entry point.
+7. Check run.sh, vps_start.sh, nexcloud_start.sh, Procfile, pyproject.toml, environment/config files, and any other deployment configuration.
+8. Make the complete project compatible with Python 3.11.6. Do not unnecessarily upgrade or downgrade Python.
+9. Check every import and dependency after removing sportsbook. Fix missing packages, invalid imports, syntax errors, missing files, incorrect paths, and startup errors.
+10. Investigate and fix the 404 issue so the application is correctly configured for VPS hosting and is not dependent on a Replit-only preview URL/path.
+11. Preserve ALL existing non-sportsbook casino functionality, including the Telegram bot, games, wallet/balance system, payments/deposits/withdrawals, database, admin functions, buttons, UI, and configuration.
+12. Do not rewrite working code unnecessarily.
+13. Perform a full startup test after the changes. Simulate the VPS process: install dependencies → launch the actual entry point → verify the bot stays running.
+14. Search the final repository again for sportsbook references and make sure none remain unless they are merely harmless documentation explaining that sportsbook was removed.
+15. Fix any additional errors discovered during testing, not just the two errors shown above.
+16. Only after everything is tested successfully, commit all changes and push them to the GitHub repository.
+
+FINAL REQUIREMENT: The finished repository must be ready to deploy on my NexCloud VPS with Python 3.11.6, must not install sportsbook, must not try to launch a nonexistent main.py, and must start the existing casino bot without breaking its existing functionality.
+
+Before finishing, give me a concise report listing: (1) every file changed, (2) what was fixed, (3) the correct VPS startup command/entry point, and (4) anything I still need to change in the NexCloud panel itself.

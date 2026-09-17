@@ -1,0 +1,10 @@
+{
+  "ts": "20260830_165407",
+  "label": "startup",
+  "copied": [
+    "casino_data.json",
+    "balances_backup.json",
+    "transaction_log.json"
+  ],
+  "failed": []
+}

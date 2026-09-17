@@ -1,0 +1,569 @@
+I need you to work on my Rollers Casino Telegram bot and fix the reliability problems properly.
+
+This is a LIVE casino bot with real player balances and deposits, so DO NOT blindly rewrite or replace working systems. First inspect the entire existing codebase, understand how the current deposit system, wallet/balance system, games, animations, refunds, database, Telegram handlers, background tasks, and concurrency work.
+
+Before changing anything, identify the actual causes of the problems and explain them to me. Then implement proper production-grade fixes.
+
+1. AUTOMATIC CRYPTO DEPOSIT MONITORING — CRITICAL
+
+Our current deposit system uses NOWPayments to generate the deposit address and QR code.
+
+The desired flow is:
+
+1. Player selects a cryptocurrency, for example Bitcoin.
+2. Bot requests/generates the deposit address through the existing NOWPayments system.
+3. Bot sends the player:
+    * Deposit address
+    * QR code
+    * Existing deposit instructions/message
+    * Existing expiry information
+4. At the exact moment the deposit address is generated, the backend must permanently associate:
+    * Telegram user ID
+    * Deposit/payment ID
+    * Selected coin/network
+    * Generated blockchain address
+    * Expected/quoted amount if applicable
+    * Creation time
+    * Expiry time
+    * Current payment status
+    * Amount received
+5. The monitoring system must know WHICH blockchain/network to monitor based on the coin selected.
+
+For example:
+
+PLAYER SELECTS BTC
+→ BTC address generated
+→ database records that this address belongs to this player’s BTC deposit
+→ BTC blockchain monitoring service watches that exact address
+→ transaction arrives
+→ system detects it
+→ system verifies the transaction and amount
+→ system sends the EXISTING BTC “processing” message already implemented in the bot
+→ after the required confirmations are reached (currently 2 confirmations where applicable)
+→ system sends the EXISTING confirmation message
+→ system credits the correct player’s casino balance with the correct amount.
+
+Do NOT simply trust a Telegram message, client-side information, or an arbitrary payment notification.
+
+The system must verify deposits using reliable backend data.
+
+IMPORTANT
+
+The same architecture must work correctly for every supported cryptocurrency.
+
+Examples may include:
+
+* BTC
+* LTC
+* SOL
+* TON/GRAM
+* and every other coin currently supported by the casino
+
+DO NOT assume all blockchains work the same way.
+
+Each network has different:
+
+* transaction formats
+* confirmation concepts
+* APIs/providers
+* address formats
+* token/native-coin behavior
+
+Inspect the currently supported coins in the code and implement the correct monitoring method for each one.
+
+DUPLICATE PROTECTION
+
+This is extremely important.
+
+A blockchain transaction must NEVER credit a player twice.
+
+Create proper idempotency protection using transaction ID/hash + payment/deposit ID and database constraints/locking where appropriate.
+
+If the monitoring process restarts, the bot must remember what it already processed.
+
+Example:
+
+Transaction arrives
+→ processing notification sent
+→ bot crashes/restarts
+→ monitoring resumes
+→ transaction must NOT receive another balance credit.
+
+Balance credit must happen exactly once.
+
+WRONG-COIN PROTECTION
+
+A BTC transaction must never be credited as LTC/SOL/etc.
+
+The deposit record must permanently contain the expected blockchain/network and address.
+
+The monitor must verify:
+
+transaction network
++
+destination address
++
+transaction status
++
+amount
++
+deposit/payment association
+
+before crediting the player’s balance.
+
+CONFIRMATION HANDLING
+
+Implement a persistent deposit state machine such as:
+
+CREATED
+→ WAITING_FOR_PAYMENT
+→ PAYMENT_DETECTED
+→ PROCESSING
+→ CONFIRMED
+→ CREDITED
+
+Also support:
+
+EXPIRED
+FAILED
+INVALID
+UNDERPAID
+OVERPAID
+
+where appropriate for the existing casino logic.
+
+Do not create a new user-facing message system if the bot already has the messages. Reuse the existing configured processing/confirmation/amount messages.
+
+RESTART SAFETY
+
+If the bot/VPS restarts while deposits are being monitored:
+
+* monitoring must automatically resume
+* pending deposits must be loaded from the database
+* already confirmed/credited deposits must not be credited again
+* no pending deposit should silently disappear
+
+Do NOT rely only on in-memory Python dictionaries for deposit tracking.
+
+Database persistence is required.
+
+MONITORING ARCHITECTURE
+
+Do NOT create one uncontrolled infinite loop per player/deposit.
+
+Design this so hundreds/thousands of pending deposits can be monitored efficiently.
+
+Use a proper asynchronous/background worker architecture with controlled polling/webhooks as appropriate.
+
+Avoid blocking the Telegram event loop.
+
+If NOWPayments webhooks can reliably provide payment status, evaluate using them together with blockchain verification/reconciliation rather than relying exclusively on polling.
+
+The system should also have a reconciliation mechanism for cases where:
+
+* webhook is delayed
+* webhook fails
+* bot restarts
+* API temporarily fails
+* blockchain provider temporarily fails
+
+The goal is that a legitimate player deposit should not become “lost”.
+
+2. TELEGRAM BOT MUST NOT FREEZE UNDER HEAVY LOAD
+
+This is another CRITICAL problem.
+
+The group now has many active members and players can play extremely quickly.
+
+Currently, when many players play simultaneously:
+
+* animations freeze
+* rolls get stuck
+* bot becomes slow
+* turns don’t get sent
+* games sometimes crash
+* bot sometimes stops responding
+* some refunds don’t happen
+* in some situations the bot appears to turn off
+
+I need this fixed at the architecture level.
+
+DO NOT simply increase sleep timers or add random retries.
+
+First inspect the event loop and identify:
+
+* blocking synchronous code
+* blocking HTTP requests
+* blocking database operations
+* excessive Telegram API calls
+* race conditions
+* shared mutable state
+* unbounded asyncio tasks
+* task leaks
+* deadlocks
+* database locking
+* connection pool exhaustion
+* Telegram flood limits
+* exception handling problems
+* memory leaks
+* CPU-heavy operations
+* animation/update bottlenecks
+
+Then fix the actual causes.
+
+3. ANIMATED DICE/BOWLING/SOCCER/BASKETBALL/DARTS GAMES
+
+The animated games must remain responsive even when many players are playing simultaneously.
+
+The existing game flow should remain:
+
+PLAYER STARTS GAME
+→ bot determines/loads opponent
+→ BOT ROLLS FIRST
+→ bot performs the animation quickly
+→ bot sends the existing player-turn message
+→ player rolls
+→ player can roll quickly
+→ result is processed
+→ scores are calculated
+→ game continues/finishes
+
+Do not change the existing game rules unless required to fix a bug.
+
+HIGH-SPEED PLAYER INPUT
+
+Players frequently send rolls very quickly.
+
+The bot must NOT:
+
+* freeze
+* ignore legitimate rolls
+* duplicate a roll
+* process one roll twice
+* mix two players’ games
+* assign a roll to the wrong game
+* lose the player’s turn
+* send incorrect scores
+* get stuck waiting forever
+* crash because multiple updates arrive at almost the same time
+
+Every active game must have isolated state.
+
+A player in Game A must never interfere with Game B.
+
+Multiple games must execute concurrently.
+
+4. GAME STATE MUST BE PERSISTENT/SAFE
+
+Inspect how game state is currently stored.
+
+If important game state only exists in RAM, determine what happens when:
+
+* process restarts
+* bot crashes
+* server restarts
+* two handlers access the same game simultaneously
+
+Implement appropriate persistence/locking where necessary.
+
+Use atomic state transitions.
+
+For example:
+
+WAITING_FOR_ROLL
+→ BOT_ROLLING
+→ PLAYER_TURN
+→ PLAYER_ROLLING
+→ RESULT
+→ NEXT_ROUND
+→ FINISHED
+
+No two concurrent handlers should be able to move the same game from PLAYER_TURN to PLAYER_ROLLING twice.
+
+5. ANIMATIONS MUST NOT BLOCK THE BOT
+
+Animations should not block the main Telegram update processing system.
+
+If an animation consists of multiple Telegram messages/edits/sleeps, make sure it is asynchronous and does not prevent other users from playing.
+
+Example:
+
+User A animation is running
++
+User B starts a game
++
+User C deposits
++
+User D plays another game
+
+ALL of these must continue independently.
+
+User A’s animation must never block User B, C, or D.
+
+Use asyncio correctly.
+
+Do not use blocking time.sleep() anywhere in async handlers.
+
+Find and replace/fix every inappropriate blocking operation.
+
+6. TELEGRAM FLOOD LIMITS
+
+Inspect every place where the bot sends/edits/deletes messages.
+
+The bot must handle Telegram API rate limits correctly.
+
+Implement proper:
+
+* throttling
+* retry/backoff
+* exception handling
+* RetryAfter handling
+* task cancellation
+* controlled concurrency
+
+But do NOT make the bot artificially slow for normal gameplay.
+
+The goal is maximum safe throughput.
+
+If multiple animation updates are unnecessary, optimize them instead of sending excessive Telegram API requests.
+
+7. DATABASE CONCURRENCY
+
+Inspect the current database configuration.
+
+Make sure simultaneous games/deposits/balance updates cannot corrupt balances.
+
+Especially protect:
+
+balance updates
++
+bets
++
+wins/losses
++
+refunds
++
+deposit credits
+
+A player must NEVER receive:
+
+* duplicate winnings
+* duplicate deposit credit
+* duplicate refund
+
+And the bot must NEVER lose a legitimate balance update because two operations happened at the same time.
+
+Use transactions/atomic updates/row locks or the appropriate mechanism for the database being used.
+
+Do NOT just put a global lock around the entire bot because that would destroy concurrency.
+
+Locks should be as granular as possible.
+
+8. BET → GAME → RESULT → BALANCE SAFETY
+
+This is extremely important because real money is involved.
+
+Every game should have a unique game/round ID.
+
+The system should be able to safely determine:
+
+game created
+→ bet accepted
+→ bet deducted
+→ bot/player rolls
+→ result calculated
+→ payout/refund determined
+→ balance updated
+→ game marked finished
+
+If the process crashes halfway through, the system must be able to recover safely.
+
+For example:
+
+BET DEDUCTED
+→ BOT CRASHES
+→ restart
+→ system detects unfinished game
+→ recovery logic determines whether the game can be resumed or safely refunded according to the existing game rules.
+
+Never blindly refund and never blindly keep the money.
+
+Create a proper recovery mechanism.
+
+9. NO FAKE/INCORRECT SCORES
+
+The animation/result system must have one authoritative game result.
+
+The displayed animation and the database result must correspond to the same actual roll/result.
+
+Do not generate one result for animation and another result for the database.
+
+The game result should be generated once and then used consistently.
+
+10. ERROR HANDLING
+
+Every background task must have proper exception handling.
+
+No silent task failures.
+
+If an asyncio task crashes, the entire bot must NOT crash.
+
+Log:
+
+* game ID
+* user ID
+* chat ID
+* deposit/payment ID where applicable
+* transaction hash
+* exception
+* timestamp
+* operation being performed
+
+Do NOT log private keys, passwords, API secrets, payment secrets, or sensitive credentials.
+
+11. BOT HEALTH / AUTO-RECOVERY
+
+Implement a proper health-monitoring system.
+
+I want the bot to detect problems such as:
+
+* Telegram connection failure
+* database connection failure
+* blockchain API failure
+* NOWPayments API failure
+* background worker failure
+* event-loop/task failure
+
+Temporary external failures should use retry/backoff.
+
+Critical workers should automatically restart/recover where safe.
+
+The bot should remain operational even if one external provider temporarily fails.
+
+12. DO NOT DESTROY EXISTING FEATURES
+
+This is a LIVE casino bot.
+
+Before changing anything:
+
+1. Inspect the repository.
+2. Identify the framework and architecture.
+3. Identify all existing games.
+4. Identify the database.
+5. Identify existing balance logic.
+6. Identify existing deposit logic.
+7. Identify existing NOWPayments integration.
+8. Identify all supported coins.
+9. Identify existing Telegram handlers.
+10. Identify existing animation functions.
+11. Identify existing refund logic.
+12. Identify existing admin/owner functionality.
+13. Identify existing user-facing messages.
+
+Preserve existing UI, commands, messages, game rules and functionality unless a change is necessary for reliability.
+
+Do not replace working code with a completely new implementation just because it is easier.
+
+13. TESTING
+
+After implementing fixes, do not just say “done.”
+
+Actually test the system.
+
+Create/load tests for concurrent gameplay.
+
+Simulate:
+
+* 10 simultaneous games
+* 50 simultaneous games
+* 100 simultaneous games
+* rapid player rolls
+* multiple players in the same group
+* multiple different games at the same time
+* simultaneous deposits
+* bot restart during an animation
+* bot restart during a deposit
+* duplicate blockchain notification
+* duplicate Telegram update
+* database failure/reconnection
+* Telegram RetryAfter
+* blockchain API timeout
+* NOWPayments timeout
+
+Verify that:
+
+NO duplicate credits
+NO duplicate payouts
+NO lost bets
+NO lost refunds
+NO stuck games
+NO incorrect scores
+NO cross-game state contamination
+NO deposit credited to wrong user
+NO duplicate deposit credit
+
+14. OBSERVABILITY
+
+Add useful structured logging and metrics so that when a player reports:
+
+“my game is stuck”
+
+we can actually find out WHY.
+
+I want logs that make it possible to identify:
+
+* active games
+* pending deposits
+* failed tasks
+* processing latency
+* Telegram API errors
+* database errors
+* blockchain monitoring errors
+* queue size
+* worker health
+
+Do not spam logs unnecessarily.
+
+15. IMPORTANT IMPLEMENTATION RULE
+
+Before modifying the code, give me a short audit:
+
+A. Current architecture
+B. Current deposit flow
+C. Current supported coins
+D. Current game architecture
+E. Exact causes of the freezing/crashing
+F. Race conditions you found
+G. Database/concurrency problems
+H. Proposed fixes
+I. Files you will modify
+J. Any database migrations required
+K. Any additional API/provider credentials required
+
+Then implement the fixes.
+
+After implementation, give me:
+
+1. Files changed
+2. What was fixed
+3. Why the old system failed
+4. Database changes
+5. Environment variables required
+6. How deposit monitoring works now
+7. How duplicate deposits are prevented
+8. How game concurrency works now
+9. How crash recovery works
+10. Tests performed and their results
+11. Any remaining limitations
+
+MOST IMPORTANT:
+
+This is a production bot handling real player balances.
+
+Reliability and correctness are more important than quickly producing code.
+
+DO NOT claim something is fixed unless you actually inspected and tested it.
+
+If something cannot safely be verified, clearly tell me instead of pretending it works.
+
+Start by auditing the existing repository. Do not make destructive changes before the audit.

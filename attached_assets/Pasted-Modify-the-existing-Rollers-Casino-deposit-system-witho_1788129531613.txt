@@ -1,0 +1,29 @@
+Modify the existing Rollers Casino deposit system without breaking any existing functionality.
+
+When a user runs /deposit, selects a coin, and the existing payment system generates/displays their deposit address, the bot must start monitoring THAT exact generated deposit address for the full validity period (1 hour). The monitoring must be tied to the specific user, selected coin, network, address, expected amount/QR data if already used by the current system, and deposit session. Do not replace or redesign the existing deposit UI or flow.
+
+The bot must continuously check the blockchain through a reliable RPC/node or appropriate blockchain API for an incoming transaction to that exact address. As soon as an incoming payment is detected on-chain, the bot must immediately send the EXISTING transaction-processing message that is already configured in the bot. Do not create a new message if one already exists—reuse the existing text/style/buttons.
+
+After the transaction reaches the required confirmation status, verify the transaction carefully before crediting: correct destination address, correct coin/token, correct network, successful transaction, incoming direction, valid amount, and transaction hash. Then immediately update the user’s casino balance/database and all relevant casino balance/state data atomically, and send the existing deposit-confirmation message showing the deposited amount and coin using the coin information already configured in the bot.
+
+Every transaction hash must be recorded as processed before/with the balance update so the same transaction can NEVER be credited twice, even if the watcher restarts, polls again, the user presses buttons repeatedly, or the server reconnects. Handle duplicate events, API/RPC errors, temporary outages, timeouts, restarts, and network failures safely without losing or double-crediting deposits.
+
+The deposit address/session expires after exactly 1 hour as the current payment system intends. After expiry, stop monitoring that deposit session and do not credit late payments automatically unless the existing system has a defined late-payment/recovery mechanism.
+
+IMPORTANT:
+
+* First inspect the entire existing deposit/payment code, database models, coin configuration, address-generation logic, QR generation, existing transaction-processing message, and deposit-confirmation message.
+* Preserve the current UI, commands, messages, buttons, database structure, and other casino functionality unless a change is absolutely required.
+* Do not hardcode coin addresses, users, amounts, or networks.
+* Support every coin/network already configured in the casino.
+* Never trust client-side data for crediting.
+* Never credit pending or failed transactions.
+* Make the watcher persistent so it continues working even if the bot receives no user interaction.
+* Make it safe across bot/VPS/Replit restarts.
+* Add proper logging so I can see address monitored, transaction detected, confirmation status, credit status, and errors.
+* If the primary transaction API currently used by the bot is unreliable, implement the blockchain monitoring as a robust fallback rather than removing the existing system.
+* Before finishing, test the complete flow from /deposit → coin selection → address generation → address monitoring → transaction detection → processing message → confirmation → balance update → confirmation message → expiry.
+* Check for race conditions and make the balance credit/database transaction atomic.
+* Do not tell me that it is finished until you have actually inspected and integrated it into the existing code and verified that all imports, database operations, background tasks, and startup/restart behavior work correctly.
+
+The goal is a production-ready automatic deposit system where the bot detects payment to the exact temporary deposit address, shows processing immediately, waits for the required blockchain confirmation, credits the correct user’s casino balance exactly once, updates the casino data instantly, and sends the confirmation message—all automatically.

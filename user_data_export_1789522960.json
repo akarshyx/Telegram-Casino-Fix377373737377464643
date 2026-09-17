@@ -1,0 +1,176 @@
+{
+  "timestamp": 1789522960.170604,
+  "export_date": "Wed Sep 16 01:42:40 2026",
+  "total_users": 2,
+  "user_balances": {
+    "8598790977": 561.98,
+    "1": 0.0
+  },
+  "user_profiles": {
+    "8598790977": {
+      "joined_at": 1788104013.483857,
+      "username": "arshxy",
+      "first_name": "#1",
+      "currency": "USD",
+      "lt_games": 15,
+      "lt_wins": 1,
+      "lt_won": 96.0,
+      "lt_wagered": 330.0,
+      "lt_first_game_ts": 1788104270,
+      "lt_last_game_ts": 1788132718
+    }
+  },
+  "user_levels": {},
+  "user_wagering_totals": {
+    "8598790977": 330.0
+  },
+  "user_match_history": {
+    "8598790977": [
+      {
+        "timestamp": 1788104270,
+        "id": "70623",
+        "game": "keno",
+        "bet": 20.0,
+        "result": "medium_1_of_6",
+        "winnings": 0.0,
+        "profit": -20.0
+      },
+      {
+        "timestamp": 1788104788,
+        "id": "88760",
+        "game": "keno",
+        "bet": 20.0,
+        "result": "easy_3_of_10",
+        "winnings": 22.0,
+        "profit": -20.0
+      },
+      {
+        "timestamp": 1788107717,
+        "id": "17154",
+        "game": "keno",
+        "bet": 20.0,
+        "result": "classic_3_of_10",
+        "winnings": 0.0,
+        "profit": -20.0
+      },
+      {
+        "timestamp": 1788108078,
+        "id": "78527",
+        "game": "keno",
+        "bet": 10.0,
+        "result": "medium_3_of_10",
+        "winnings": 0.0,
+        "profit": -10.0
+      },
+      {
+        "timestamp": 1788108347,
+        "id": "47300",
+        "game": "keno",
+        "bet": 20.0,
+        "result": "medium_2_of_10",
+        "winnings": 0.0,
+        "profit": -20.0
+      },
+      {
+        "timestamp": 1788109506,
+        "id": "06768",
+        "game": "keno",
+        "bet": 20.0,
+        "result": "medium_2_of_10",
+        "winnings": 0.0,
+        "profit": -20.0
+      },
+      {
+        "timestamp": 1788110085,
+        "id": "85031",
+        "game": "keno",
+        "bet": 10.0,
+        "result": "classic_3_of_10",
+        "winnings": 0.0,
+        "profit": -10.0
+      },
+      {
+        "timestamp": 1788111761,
+        "id": "61329",
+        "game": "keno",
+        "bet": 20.0,
+        "result": "medium_3_of_10",
+        "winnings": 0.0,
+        "profit": -20.0
+      },
+      {
+        "timestamp": 1788128339,
+        "id": "39321",
+        "game": "dice",
+        "bet": 50.0,
+        "result": "win",
+        "winnings": 96.0,
+        "profit": 46.0
+      },
+      {
+        "timestamp": 1788128369,
+        "id": "69629",
+        "game": "dice",
+        "bet": 50.0,
+        "result": "loss",
+        "winnings": 0,
+        "profit": -50.0
+      },
+      {
+        "timestamp": 1788128409,
+        "id": "09977",
+        "game": "keno",
+        "bet": 30.0,
+        "result": "5_of_10",
+        "winnings": 84.0,
+        "profit": -30.0
+      },
+      {
+        "timestamp": 1788128433,
+        "id": "33741",
+        "game": "keno",
+        "bet": 30.0,
+        "result": "2_of_10",
+        "winnings": 0.0,
+        "profit": -30.0
+      },
+      {
+        "timestamp": 1788128504,
+        "id": "04412",
+        "game": "pump",
+        "bet": 10.0,
+        "result": "burst_1.48",
+        "winnings": 0,
+        "profit": -10.0
+      },
+      {
+        "timestamp": 1788128520,
+        "id": "20461",
+        "game": "pump",
+        "bet": 10.0,
+        "result": "burst_1.28",
+        "winnings": 0,
+        "profit": -10.0
+      },
+      {
+        "timestamp": 1788132718,
+        "id": "18696",
+        "game": "pump",
+        "bet": 10.0,
+        "result": "burst_1.28",
+        "winnings": 0,
+        "profit": -10.0
+      }
+    ]
+  },
+  "referral_data": {},
+  "referral_earnings": {},
+  "user_raffle_tickets": {},
+  "pending_deposits": {},
+  "pending_withdrawals": {},
+  "active_games": {},
+  "hilo_games": {},
+  "crypto_house_balances": {
+    "USDT": 1428.0
+  }
+}

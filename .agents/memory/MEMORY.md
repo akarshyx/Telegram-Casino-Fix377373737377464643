@@ -1,0 +1,3 @@
+- [Admin callback routing](admin-callback-routing.md) — owner action buttons need ownership-check exemptions; authorization remains in each admin handler.
+- [Deposit notification retries](deposit-notification-retries.md) — persist credits first; mark Telegram notifications only after successful delivery and retry independently.
+- [Health route order](health-route-order.md) — register liveness paths before the single-segment web-app catch-all.

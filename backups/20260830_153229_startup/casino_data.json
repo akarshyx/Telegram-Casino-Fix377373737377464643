@@ -1,0 +1,203 @@
+{
+  "current": {
+    "user_balances": {},
+    "user_coins": {},
+    "user_coin_last_roll": {},
+    "user_wallet_mode": {},
+    "player_data": {},
+    "casino_balance_usd": 1200.0,
+    "user_currency_preferences": {},
+    "deposit_counter": 1,
+    "withdrawal_counter": 1,
+    "owner_id": 8598790977,
+    "min_bet": 1.0,
+    "min_deposit": 1,
+    "min_withdrawal": 10.0,
+    "user_states": {},
+    "pending_deposits": {},
+    "pending_withdrawals": {},
+    "pending_owner_payments": {},
+    "active_games": {},
+    "hilo_games": {},
+    "user_levels": {},
+    "user_boost_status": {},
+    "user_profiles": {},
+    "game_history": {},
+    "referral_data": {},
+    "referral_earnings": {},
+    "pending_referral_commissions": {},
+    "referral_wager_earnings": {},
+    "referral_deposit_earnings": {},
+    "referral_daily_earnings": {},
+    "referral_top_referred": {},
+    "referral_codes": {},
+    "pending_challenges": {},
+    "active_pvp_games": {},
+    "user_wagering_totals": {},
+    "user_streak_data": {},
+    "user_level_bonus_claimed": {},
+    "user_losses_rakeback": {},
+    "user_last_rakeback_claim": {},
+    "user_raffle_tickets": {},
+    "user_match_history": {},
+    "user_wagering_requirements": {},
+    "user_bonus_balances": {},
+    "bonus_codes": {},
+    "manager_ids": [
+      7648908177
+    ],
+    "user_claimed_codes": {},
+    "user_bonus_wager_data": {},
+    "user_pending_bonus_claims": {},
+    "user_deposit_totals": {},
+    "user_deposit_history": {},
+    "user_last_deposit_ts": {},
+    "user_tip_received": {},
+    "user_client_seeds": {},
+    "user_transfer_codes": {},
+    "sports_matches": {},
+    "_pending_tips": {},
+    "house_balance": 1200.0,
+    "crypto_house_balances": {
+      "USDT": 1200.0
+    },
+    "user_crypto_deposits": {},
+    "user_crypto_addresses": {},
+    "pending_crypto_deposits": {},
+    "pending_crypto_withdrawals": {},
+    "nowpayments_pending_deposits": {},
+    "nowpayments_pending_withdrawals": {},
+    "processed_payment_ids": [],
+    "crypto_sources": {},
+    "stuck_deposit_reports": {},
+    "coinflip_stickers": {
+      "btc": "CAACAgQAAxkBAAIFsWjiEVAj_Y28IILD1cMnF-JSd_vkAAKNGgACTP5wUadjjU-B8yusNgQ",
+      "eth": "CAACAgQAAxkBAAIFsWjiEVAj_Y28IILD1cMnF-JSd_vkAAKNGgACTP5wUadjjU-B8yusNgQ",
+      "heads": null,
+      "tails": null
+    },
+    "rollers_roulette_stickers": {
+      "pack_name": "rollers_roullete_by_rollersgamebot",
+      "title": "Rollers Roullete By @rollerscasino",
+      "is_animated": false,
+      "stickers": [
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3Z2RmeUCqT5CgZrYsenAAHYkAACpCIAApS2IFRKz22rx3MkED0E"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3abfyhvses03LYrCWLJ4y8mAAJ-HQAChDcoVHYZAAH7cvoFMT0E"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3ZdtsZ16mYc0rDp16fjfz5gAAJaHwACD6MgVGMz1zs45kJ4PQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3aTKsJJSvbfk9SuTuy9jUh8AAIsKwACBK0pVAdgTXG6cn4uPQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3Z07yijjMcpW5LmNN2d32rRAAKcIwACq58oVEYcB0SUtM2gPQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3Z0U7y5eVT82l9qAl4JCzfpAAI0HgACmdsoVHFvIPJBm2jCPQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3ZaUsicI-WVTJpxT1TsZuzkAAJqIAACVRQpVIb9wtHyqt5vPQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3bFNOVFWwQ5wZE6lHOpv85nAALXIQACtWspVJIxATE4sAG9PQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3Y0k5n3RCP43rcCNCGEiRdOAAIhIwAC9oggVOtmf3a3NWDUPQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3abjlLCOJH43QN1e7i7nH93AALBIgACDXEoVGYjlGwCyG5PPQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3Y72YSP2b-rm1stMDGjO82RAAIaHwAC_6gpVKSjfFVyYwcYPQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3YGeg6_I_s-kcrT2BqMTvpTAAJgKAACAmghVFlATkRAzHUpPQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3bMW0MizcSsSq9-BUdTd69sAAIUJgACguIgVKBTdNUtHD3JPQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3ajrYY59w_XjP7Q4MKRzxJ0AAKuHwACrxkpVKGt82gWdDq_PQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3bGiIc8f0FPEHytrwZs_zwuAAIlKgACHxcoVHg6UwkFNn8qPQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3a7mAHVU-0coD3ggooOW8vCAAJhHwACXcsoVFYDxhz-RKnaPQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3aluoT2X8pJJ54Ia2aNmKQCAAIlIAACXlsoVCaIYUkNy61ePQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3Z_HvpmfQ645aYgReZIBoC8AAJ7JQACzOAoVPh41lOK9n8EPQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3Zd6t2QqpKCB5dvgouhssCmAAJdJAAC-AwoVHiAM0XZjRDHPQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3bUiAOMeHrj9UXk8YWX7C5rAALRIAACDh0pVA-kzI-m7Z4YPQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3b2_V5kGzA3EiNvKYoSWeeJAAK2HwACFWggVO28r38OhU7-PQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3a8E3bqVntK43HYjdu6kxzBAAJdJAACbvYpVFCZ5feSLZCBPQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3bEFGxVSKG01A0KbTx3-C3JAAK7JAAC8fooVN-kzka2_uuAPQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3bhUfWb6FbfF3sP4cdiSR9EAAJ-IQACEDUgVHoWcnuVLGC4PQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3atYjiaBk60w9PQoXCza5axAAJaIwACWb4oVNH_7hBFzhtLPQQ"
+        },
+        {
+          "file_id": "CAACAgUAAxUAAWqFx3Zo34GucyO2m5M2TPBVx2rCAALtJAACWc4gVAuneCXFSrOEPQQ"
+        }
+      ]
+    },
+    "banned_users": {},
+    "user_saved_withdrawal_addresses": {},
+    "pending_cctip_requests": {},
+    "disabled_games": [],
+    "casino_maintenance_mode": false,
+    "profit_tracking": {
+      "daily": {},
+      "weekly": {},
+      "monthly": {},
+      "total_deposits": 0,
+      "total_withdrawals": 0,
+      "total_house_profit": 0,
+      "total_games_played": 0
+    },
+    "vip_users": {},
+    "user_intel": {},
+    "mod_whitelist": [],
+    "mod_actions_log": [],
+    "_active_race": {},
+    "_race_wagering": {},
+    "_race_usernames": {},
+    "_active_raffle": {},
+    "_raffle_start_wager": {},
+    "user_raffle_wagering": {},
+    "last_save_timestamp": 1787770367.553298,
+    "save_count": 1,
+    "_events": {
+      "deposit_bonuses": {},
+      "deposit_race": {},
+      "cashback_events": {},
+      "stats": {
+        "total_bonuses_paid": 0.0,
+        "total_cashback_paid": 0.0,
+        "total_race_prizes": 0.0
+      }
+    }
+  },
+  "backup_data": null,
+  "emergency_recovery": "eyJ1c2VyX2JhbGFuY2VzIjoge30sICJ1c2VyX2NvaW5zIjoge30sICJ1c2VyX2NvaW5fbGFzdF9yb2xsIjoge30sICJ1c2VyX3dhbGxldF9tb2RlIjoge30sICJwbGF5ZXJfZGF0YSI6IHt9LCAiY2FzaW5vX2JhbGFuY2VfdXNkIjogMTIwMC4wLCAidXNlcl9jdXJyZW5jeV9wcmVmZXJlbmNlcyI6IHt9LCAiZGVwb3NpdF9jb3VudGVyIjogMSwgIndpdGhkcmF3YWxfY291bnRlciI6IDEsICJvd25lcl9pZCI6IDg1OTg3OTA5NzcsICJtaW5fYmV0IjogMS4wLCAibWluX2RlcG9zaXQiOiAxLCAibWluX3dpdGhkcmF3YWwiOiAxMC4wLCAidXNlcl9zdGF0ZXMiOiB7fSwgInBlbmRpbmdfZGVwb3NpdHMiOiB7fSwgInBlbmRpbmdfd2l0aGRyYXdhbHMiOiB7fSwgInBlbmRpbmdfb3duZXJfcGF5bWVudHMiOiB7fSwgImFjdGl2ZV9nYW1lcyI6IHt9LCAiaGlsb19nYW1lcyI6IHt9LCAidXNlcl9sZXZlbHMiOiB7fSwgInVzZXJfYm9vc3Rfc3RhdHVzIjoge30sICJ1c2VyX3Byb2ZpbGVzIjoge30sICJnYW1lX2hpc3RvcnkiOiB7fSwgInJlZmVycmFsX2RhdGEiOiB7fSwgInJlZmVycmFsX2Vhcm5pbmdzIjoge30sICJwZW5kaW5nX3JlZmVycmFsX2NvbW1pc3Npb25zIjoge30sICJyZWZlcnJhbF93YWdlcl9lYXJuaW5ncyI6IHt9LCAicmVmZXJyYWxfZGVwb3NpdF9lYXJuaW5ncyI6IHt9LCAicmVmZXJyYWxfZGFpbHlfZWFybmluZ3MiOiB7fSwgInJlZmVycmFsX3RvcF9yZWZlcnJlZCI6IHt9LCAicmVmZXJyYWxfY29kZXMiOiB7fSwgInBlbmRpbmdfY2hhbGxlbmdlcyI6IHt9LCAiYWN0aXZlX3B2cF9nYW1lcyI6IHt9LCAidXNlcl93YWdlcmluZ190b3RhbHMiOiB7fSwgInVzZXJfc3RyZWFrX2RhdGEiOiB7fSwgInVzZXJfbGV2ZWxfYm9udXNfY2xhaW1lZCI6IHt9LCAidXNlcl9sb3NzZXNfcmFrZWJhY2siOiB7fSwgInVzZXJfbGFzdF9yYWtlYmFja19jbGFpbSI6IHt9LCAidXNlcl9yYWZmbGVfdGlja2V0cyI6IHt9LCAidXNlcl9tYXRjaF9oaXN0b3J5Ijoge30sICJ1c2VyX3dhZ2VyaW5nX3JlcXVpcmVtZW50cyI6IHt9LCAidXNlcl9ib251c19iYWxhbmNlcyI6IHt9LCAiYm9udXNfY29kZXMiOiB7fSwgIm1hbmFnZXJfaWRzIjogWzc2NDg5MDgxNzddLCAidXNlcl9jbGFpbWVkX2NvZGVzIjoge30sICJ1c2VyX2JvbnVzX3dhZ2VyX2RhdGEiOiB7fSwgInVzZXJfcGVuZGluZ19ib251c19jbGFpbXMiOiB7fSwgInVzZXJfZGVwb3NpdF90b3RhbHMiOiB7fSwgInVzZXJfZGVwb3NpdF9oaXN0b3J5Ijoge30sICJ1c2VyX2xhc3RfZGVwb3NpdF90cyI6IHt9LCAidXNlcl90aXBfcmVjZWl2ZWQiOiB7fSwgInVzZXJfY2xpZW50X3NlZWRzIjoge30sICJ1c2VyX3RyYW5zZmVyX2NvZGVzIjoge30sICJzcG9ydHNfbWF0Y2hlcyI6IHt9LCAiX3BlbmRpbmdfdGlwcyI6IHt9LCAiaG91c2VfYmFsYW5jZSI6IDEyMDAuMCwgImNyeXB0b19ob3VzZV9iYWxhbmNlcyI6IHsiVVNEVCI6IDEyMDAuMH0sICJ1c2VyX2NyeXB0b19kZXBvc2l0cyI6IHt9LCAidXNlcl9jcnlwdG9fYWRkcmVzc2VzIjoge30sICJwZW5kaW5nX2NyeXB0b19kZXBvc2l0cyI6IHt9LCAicGVuZGluZ19jcnlwdG9fd2l0aGRyYXdhbHMiOiB7fSwgIm5vd3BheW1lbnRzX3BlbmRpbmdfZGVwb3NpdHMiOiB7fSwgIm5vd3BheW1lbnRzX3BlbmRpbmdfd2l0aGRyYXdhbHMiOiB7fSwgInByb2Nlc3NlZF9wYXltZW50X2lkcyI6IFtdLCAiY3J5cHRvX3NvdXJjZXMiOiB7fSwgInN0dWNrX2RlcG9zaXRfcmVwb3J0cyI6IHt9LCAiY29pbmZsaXBfc3RpY2tlcnMiOiB7ImJ0YyI6ICJDQUFDQWdRQUF4a0JBQUlGc1dqaUVWQWpfWTI4SUlMRDFjTW5GLUpTZF92a0FBS05HZ0FDVFA1d1VhZGpqVS1COHl1c05nUSIsICJldGgiOiAiQ0FBQ0FnUUFBeGtCQUFJRnNXamlFVkFqX1kyOElJTEQxY01uRi1KU2RfdmtBQUtOR2dBQ1RQNXdVYWRqalUtQjh5dXNOZ1EiLCAiaGVhZHMiOiBudWxsLCAidGFpbHMiOiBudWxsfSwgInJvbGxlcnNfcm91bGV0dGVfc3RpY2tlcnMiOiB7InBhY2tfbmFtZSI6ICJyb2xsZXJzX3JvdWxsZXRlX2J5X3JvbGxlcnNnYW1lYm90IiwgInRpdGxlIjogIlJvbGxlcnMgUm91bGxldGUgQnkgQHJvbGxlcnNjYXNpbm8iLCAiaXNfYW5pbWF0ZWQiOiBmYWxzZSwgInN0aWNrZXJzIjogW3siZmlsZV9pZCI6ICJDQUFDQWdVQUF4VUFBV3FGeDNaMlJtZVVDcVQ1Q2dacllzZW5BQUhZa0FBQ3BDSUFBcFMySUZSS3oyMnJ4M01rRUQwRSJ9LCB7ImZpbGVfaWQiOiAiQ0FBQ0FnVUFBeFVBQVdxRngzYWJmeWh2c2VzMDNMWXJDV0xKNHk4bUFBSi1IUUFDaERjb1ZIWVpBQUg3Y3ZvRk1UMEUifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M1pkdHNaMTZtWWMwckRwMTZmamZ6NWdBQUphSHdBQ0Q2TWdWR016MXpzNDVrSjRQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M2FUS3NKSlN2YmZrOVN1VHV5OWpVaDhBQUlzS3dBQ0JLMHBWQWRnVFhHNmNuNHVQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M1owN3lpampNY3BXNUxtTk4yZDMyclJBQUtjSXdBQ3E1OG9WRVljQjBTVXRNMmdQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M1owVTd5NWVWVDgybDlxQWw0SkN6ZnBBQUkwSGdBQ21kc29WSEZ2SVBKQm0yakNQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M1phVXNpY0ktV1ZUSnB4VDFUc1p1emtBQUpxSUFBQ1ZSUXBWSWI5d3RIeXF0NXZQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M2JGTk9WRld3UTV3WkU2bEhPcHY4NW5BQUxYSVFBQ3RXc3BWSkl4QVRFNHNBRzlQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M1kwazVuM1JDUDQzcmNDTkNHRWlSZE9BQUloSXdBQzlvZ2dWT3RtZjNhM05XRFVQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M2FiamxMQ09KSDQzUU4xZTdpN25IOTNBQUxCSWdBQ0RYRW9WR1lqbEd3Q3lHNVBQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M1k3MllTUDJiLXJtMXN0TURHak84MlJBQUlhSHdBQ182Z3BWS1NqZkZWeVl3Y1lQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M1lHZWc2X0lfcy1rY3JUMkJxTVR2cFRBQUpnS0FBQ0FtZ2hWRmxBVGtSQXpIVXBQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M2JNVzBNaXpjU3NTcTktQlVkVGQ2OXNBQUlVSmdBQ2d1SWdWS0JUZE5VdEhEM0pQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M2FqcllZNTl3X1hqUDdRNE1LUnp4SjBBQUt1SHdBQ3J4a3BWS0d0ODJnV2REcV9QUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M2JHaUljOGYwRlBFSHl0cndac196d3VBQUlsS2dBQ0h4Y29WSGc2VXdrRk5uOHFQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M2E3bUFIVlUtMGNvRDNnZ29vT1c4dkNBQUpoSHdBQ1hjc29WRllEeGh6LVJLbmFQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M2FsdW9UMlg4cEpKNTRJYTJhTm1LUUNBQUlsSUFBQ1hsc29WQ2FJWVVrTnk2MWVQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M1pfSHZwbWZRNjQ1YVlnUmVaSUJvQzhBQUo3SlFBQ3pPQW9WUGg0MWxPSzluOEVQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M1pkNnQyUXFwS0NCNWR2Z291aHNzQ21BQUpkSkFBQy1Bd29WSGlBTTBYWmpSREhQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M2JVaUFPTWVIcmo5VVhrOFlXWDdDNXJBQUxSSUFBQ0RoMHBWQS1rekktbTdaNFlQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M2IyX1Y1a0d6QTNFaU52S1lvU1dlZUpBQUsySHdBQ0ZXZ2dWTzI4cjM4T2hVNy1QUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M2E4RTNicVZudEs0M0hZamR1Nmt4ekJBQUpkSkFBQ2J2WXBWRkNaNWZlU0xaQ0JQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M2JFRkd4VlNLRzAxQTBLYlR4My1DM0pBQUs3SkFBQzhmb29WTi1remthMl91dUFQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M2JoVWZXYjZGYmZGM3NQNGNkaVNSOUVBQUotSVFBQ0VEVWdWSG9XY251VkxHQzRQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M2F0WWppYUJrNjB3OVBRb1hDemE1YXhBQUphSXdBQ1diNG9WTkhfN2hCRnpodExQUVEifSwgeyJmaWxlX2lkIjogIkNBQUNBZ1VBQXhVQUFXcUZ4M1pvMzRHdWN5TzJtNU0yVFBCVngyckNBQUx0SkFBQ1djNGdWQXVuZUNYRlNyT0VQUVEifV19LCAiYmFubmVkX3VzZXJzIjoge30sICJ1c2VyX3NhdmVkX3dpdGhkcmF3YWxfYWRkcmVzc2VzIjoge30sICJwZW5kaW5nX2NjdGlwX3JlcXVlc3RzIjoge30sICJkaXNhYmxlZF9nYW1lcyI6IFtdLCAiY2FzaW5vX21haW50ZW5hbmNlX21vZGUiOiBmYWxzZSwgInByb2ZpdF90cmFja2luZyI6IHsiZGFpbHkiOiB7fSwgIndlZWtseSI6IHt9LCAibW9udGhseSI6IHt9LCAidG90YWxfZGVwb3NpdHMiOiAwLCAidG90YWxfd2l0aGRyYXdhbHMiOiAwLCAidG90YWxfaG91c2VfcHJvZml0IjogMCwgInRvdGFsX2dhbWVzX3BsYXllZCI6IDB9LCAidmlwX3VzZXJzIjoge30sICJ1c2VyX2ludGVsIjoge30sICJtb2Rfd2hpdGVsaXN0IjogW10sICJtb2RfYWN0aW9uc19sb2ciOiBbXSwgIl9hY3RpdmVfcmFjZSI6IHt9LCAiX3JhY2Vfd2FnZXJpbmciOiB7fSwgIl9yYWNlX3VzZXJuYW1lcyI6IHt9LCAiX2FjdGl2ZV9yYWZmbGUiOiB7fSwgIl9yYWZmbGVfc3RhcnRfd2FnZXIiOiB7fSwgInVzZXJfcmFmZmxlX3dhZ2VyaW5nIjoge30sICJsYXN0X3NhdmVfdGltZXN0YW1wIjogMTc4Nzc3MDM2Ny41NTMyOTgsICJzYXZlX2NvdW50IjogMSwgIl9ldmVudHMiOiB7ImRlcG9zaXRfYm9udXNlcyI6IHt9LCAiZGVwb3NpdF9yYWNlIjoge30sICJjYXNoYmFja19ldmVudHMiOiB7fSwgInN0YXRzIjogeyJ0b3RhbF9ib251c2VzX3BhaWQiOiAwLjAsICJ0b3RhbF9jYXNoYmFja19wYWlkIjogMC4wLCAidG90YWxfcmFjZV9wcml6ZXMiOiAwLjB9fX0="
+}
