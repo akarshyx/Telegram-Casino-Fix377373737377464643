@@ -1,0 +1,189 @@
+I need you to FIX THE DEPOSIT SYSTEM PROPERLY. Do NOT just patch the symptom.
+
+Users are repeatedly complaining in the Telegram group that they deposited crypto but their balance was not credited automatically.
+
+Example complaint:
+"I made deposit not received yet"
+
+The required deposit flow is:
+
+1. User opens Deposit.
+2. User selects a coin, for example BTC.
+3. NOWPayments generates the payment/deposit address.
+4. Save ALL information for that specific deposit in persistent storage:
+   - Telegram user ID
+   - username
+   - selected coin / pay_currency
+   - NOWPayments payment_id
+   - generated pay_address
+   - expected amount
+   - price_amount
+   - created_at
+   - expiry time
+   - current status
+   - credited status
+   - transaction hash if available
+
+5. After the address is generated, the bot MUST continuously monitor the CORRECT blockchain/address associated with that deposit.
+
+IMPORTANT:
+Do NOT identify a deposit only by the user's Telegram ID.
+Do NOT identify it only by coin.
+Do NOT scan a generic house wallet and guess who paid.
+
+The exact generated NOWPayments payment address must be tied to the user's pending deposit.
+
+For BTC:
+- monitor the BTC blockchain for the exact generated BTC address.
+
+For LTC:
+- monitor the LTC blockchain for the exact generated LTC address.
+
+For DOGE:
+- monitor DOGE.
+
+For SOL:
+- monitor the Solana address using the correct Solana RPC/explorer logic.
+
+For TON:
+- monitor TON using the correct TON API/RPC logic.
+
+Use the correct blockchain for each supported coin. NEVER cross-credit a BTC transaction as LTC/another coin.
+
+6. When an incoming transaction is detected:
+   - match the destination address EXACTLY to a pending deposit
+   - match the blockchain/coin
+   - record the transaction hash
+   - record the received amount
+   - change status to "detected"/"processing"
+   - send the user a Telegram message saying the deposit was detected and is waiting for confirmation
+
+7. Confirmation handling:
+   BTC/LTC/DOGE/etc. must wait for the configured number of blockchain confirmations before crediting.
+   Do not credit the same transaction twice.
+
+8. Once confirmed:
+   - atomically mark the deposit as credited
+   - credit the user's balance in the CORRECT coin/USD balance according to the existing balance architecture
+   - record transaction hash, amount, coin, address and timestamp
+   - send the user a confirmation message
+   - send an admin/group notification showing:
+       User
+       Coin
+       Amount
+       Deposit address
+       TX hash
+       Status
+
+9. CRITICAL:
+The system MUST be idempotent.
+
+If the monitoring loop sees the same transaction 20 times, the user must receive ONE credit only.
+
+Use a unique transaction identifier such as:
+coin + tx_hash + destination_address
+and enforce this at the database level where possible.
+
+10. Do NOT remove the existing NOWPayments address-generation system.
+Keep NOWPayments responsible for creating the payment/address if that is how the current system works.
+
+The problem I want fixed is AFTER address creation:
+ADDRESS -> BLOCKCHAIN DETECTION -> CONFIRMATIONS -> CREDIT -> USER NOTIFICATION.
+
+11. Inspect the EXISTING implementation first.
+
+Search the entire repository for:
+- pending_deposits
+- NOWPayments
+- payment_id
+- pay_address
+- deposit
+- webhook
+- transaction hash
+- blockchain
+- confirmation
+- credit
+- wallet_adapter
+- events.py
+- main.py
+- db.py
+
+Do not create a second competing deposit system if one already exists.
+
+Find why the current implementation misses real deposits.
+
+12. Add detailed structured logging such as:
+
+[DEPOSIT] created
+[DEPOSIT] user_id=...
+[DEPOSIT] coin=BTC
+[DEPOSIT] address=...
+[DEPOSIT] payment_id=...
+
+[DEPOSIT CHECK] checking address=...
+[DEPOSIT DETECTED] tx=...
+[DEPOSIT CONFIRMATION] tx=... confirmations=...
+[DEPOSIT CREDITED] user_id=... amount=... coin=... tx=...
+
+If an API/RPC/explorer request fails, log the actual error instead of silently ignoring it.
+
+13. Handle restarts correctly.
+
+If the bot/VPS restarts, pending deposits MUST NOT disappear.
+
+On startup:
+- load all unexpired/uncredited pending deposits
+- resume monitoring them automatically
+
+14. Handle expired deposits safely.
+
+Do not delete pending deposit records immediately when they expire.
+Keep historical records so a late transaction can still be investigated by admins.
+
+15. Add an ADMIN deposit lookup command if the project already has an owner/admin system.
+
+For example:
+
+/deposit_status <user_id>
+
+It should show:
+- pending deposits
+- coin
+- address
+- payment ID
+- received amount
+- TX hash
+- confirmations
+- status
+- credited/not credited
+
+16. TEST THIS BEFORE SAYING IT IS FIXED.
+
+Create tests for:
+A. BTC payment detected
+B. payment gets confirmations
+C. payment gets credited exactly once
+D. same transaction scanned repeatedly
+E. wrong coin cannot credit the deposit
+F. wrong address cannot credit the deposit
+G. bot restart while deposit is pending
+H. blockchain API temporarily fails
+I. two users have deposits at the same time
+J. late payment after expiry
+
+Do NOT tell me "fixed" just because the bot starts.
+
+The actual success condition is:
+
+USER CREATES DEPOSIT
+→ ADDRESS SAVED
+→ USER SENDS CRYPTO
+→ BOT FINDS TRANSACTION ON CORRECT BLOCKCHAIN
+→ BOT MATCHES EXACT ADDRESS
+→ BOT TRACKS CONFIRMATIONS
+→ BOT CREDITS USER ONCE
+→ BOT SENDS USER CONFIRMATION
+→ BOT NOTIFIES ADMIN/GROUP
+
+Before modifying anything, give me a short diagnosis of the CURRENT deposit flow and identify exactly where deposits can currently be lost/missed.
+Then implement the fix in the existing architecture.

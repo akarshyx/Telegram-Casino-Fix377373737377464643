@@ -1,0 +1,950 @@
+🚨 ROLLERS CASINO — COMPLETE PRODUCTION AUDIT, SECURITY, RELIABILITY & UX FIX
+
+I need you to perform a complete production-level audit and repair of my Rollers Casino Telegram bot.
+
+This is no longer a small bot. Rollers Casino now has 5,000+ community members, many active players, real deposits, withdrawals, games, referrals and balances.
+
+I have been working on this casino continuously for around 10 months. I am tired of fixing one bug and then finding another bug, and I am tired of giving excuses to my members.
+
+I don’t want another temporary patch.
+
+I want you to inspect the entire existing codebase, find the actual causes of the problems, identify other problems I have not noticed, and bring the bot to a much more reliable production standard.
+
+This bot handles real player balances, so financial correctness, security and reliability are the highest priority.
+
+⸻
+
+⚠️ VERY IMPORTANT — AUDIT BEFORE CHANGING
+
+DO NOT blindly rewrite the project.
+
+First inspect the complete repository and understand:
+
+* Project architecture
+* Telegram framework/library
+* Database
+* Database models
+* Balance system
+* Transaction/ledger system
+* Deposit system
+* NOWPayments integration
+* Withdrawal system
+* Refund system
+* Every game
+* Game result logic
+* Animation system
+* Referral system
+* Bonus system
+* Telegram handlers
+* Inline keyboards
+* Callback queries
+* Background workers
+* Scheduled jobs
+* API integrations
+* Admin/owner authorization
+* Error handling
+* Logging
+* Concurrency architecture
+* Startup/recovery logic
+
+Before making major changes, give me an audit containing:
+
+1. Current architecture
+2. Current deposit flow
+3. Current withdrawal flow
+4. Current balance/ledger flow
+5. Current game architecture
+6. Current animation architecture
+7. Current referral architecture
+8. Current concurrency model
+9. Current database architecture
+10. Security vulnerabilities found
+11. Financial vulnerabilities found
+12. Performance bottlenecks
+13. Exact causes of crashes/freezes
+14. Broken UI/button problems
+15. Problems I have not mentioned
+16. Proposed fixes
+17. Files that will be changed
+18. Database migrations required
+19. New environment variables/API credentials required
+
+Then implement the fixes carefully.
+
+⸻
+
+1. 🚨 ANIMATED GAMES — HIGH CONCURRENCY
+
+The biggest current problem is animated games freezing when many players are playing simultaneously.
+
+Affected games include:
+
+* 🎲 Dice
+* 🎳 Bowling
+* ⚽ Soccer
+* 🏀 Basketball
+* 🎯 Darts
+
+The casino group has many active players, and players can send rolls extremely quickly.
+
+The bot currently sometimes:
+
+* freezes
+* stops responding
+* gets stuck on a turn
+* loses rolls
+* becomes extremely slow
+* crashes
+* sends incorrect results
+* fails to refund players
+* mixes game states
+* stops responding to other users while an animation is running
+
+This must be fixed at the architecture level.
+
+Required behavior
+
+Example:
+
+Player A starts Dice.
+
+At the same time:
+
+Player B starts Bowling.
+Player C starts Soccer.
+Player D starts Basketball.
+Player E starts Darts.
+Many other players are playing too.
+
+ALL games must continue independently.
+
+One player’s animation must NEVER block another player’s game.
+
+Do NOT create one global queue that makes all players wait.
+
+Do NOT use one global lock around gameplay.
+
+Use proper asynchronous/concurrent processing with isolated per-game state.
+
+⸻
+
+2. FAST PLAYER ROLLS
+
+Players frequently send rolls extremely quickly.
+
+The bot must correctly handle rapid Telegram updates.
+
+It must never:
+
+* process the same roll twice
+* lose a valid roll
+* assign a roll to the wrong player
+* assign a roll to the wrong game
+* accept a roll when it is not the player’s turn
+* freeze after a fast roll
+* leave a game permanently waiting
+* calculate an incorrect score
+* pay twice
+
+Every game needs a unique game/round ID and safe state transitions.
+
+For example:
+
+CREATED → BET_ACCEPTED → BOT_TURN → PLAYER_TURN → RESULT → PAYOUT → FINISHED
+
+State transitions must be atomic and protected from race conditions.
+
+⸻
+
+3. ANIMATION MUST NOT BLOCK THE BOT
+
+Inspect every animation function.
+
+Find:
+
+* time.sleep()
+* blocking HTTP requests
+* blocking database calls
+* excessive Telegram API calls
+* unnecessary message edits
+* unlimited asyncio tasks
+* task leaks
+* deadlocks
+* shared global state
+* CPU-heavy operations
+
+There must be no blocking time.sleep() inside async gameplay handlers.
+
+Use asynchronous operations correctly.
+
+Animations should be fast and responsive while allowing other users to continue playing.
+
+If 100 games are active, one animation must not stop the other 99 games.
+
+⸻
+
+4. GAME RESULT MUST BE AUTHORITATIVE
+
+This is extremely important for financial safety.
+
+The bot must have one authoritative game result.
+
+The system must NEVER do:
+
+Animation result ≠ database result ≠ payout result
+
+Instead:
+
+Authoritative server result
+↓
+Payout calculation
+↓
+Database transaction
+↓
+Animation/message displays the same result
+
+The animation must NEVER independently generate a different result from the payout system.
+
+Players must never be able to manipulate the displayed animation to influence the payout.
+
+⸻
+
+5. 🎰 SLOTS / WHEEL — NO FAKE MULTIPLIERS
+
+Audit the slot and wheel systems carefully.
+
+There is currently an issue where the bot appears to show multiplier/winning messages that don’t correspond correctly to the actual Telegram slot result.
+
+For example, in normal Telegram animated slots:
+
+If the actual result is:
+
+🍒 🍒 🍒
+
+the bot must calculate the configured payout for that exact combination.
+
+If the result is:
+
+7️⃣ 7️⃣ 7️⃣
+
+the bot must use the configured 777 payout.
+
+If the result is another fruit/bar combination, it must use the payout configured for THAT exact combination.
+
+Do not display a random or generic multiplier simply because the animation completed.
+
+The displayed result, stored result and payout must all originate from the same authoritative result.
+
+Audit all slot/wheel logic for:
+
+* incorrect multipliers
+* incorrect payout tables
+* fake result messages
+* result/payout mismatch
+* race conditions
+* duplicate processing
+* manipulated callbacks
+* repeated spins
+* balance calculation errors
+
+⸻
+
+6. 🔐 COMPLETE GAME EXPLOIT / SECURITY AUDIT
+
+I have noticed glitches in multiple games that may give players opportunities to exploit the system, generate incorrect/fake multipliers or receive money they should not receive.
+
+I want a complete defensive security audit of EVERY game.
+
+Do not assume the games are secure because the UI looks correct.
+
+Check for:
+
+* Race conditions
+* Duplicate callbacks
+* Replay attacks
+* Duplicate rolls
+* Duplicate payouts
+* Duplicate refunds
+* Manipulated callback data
+* Client-controlled payout values
+* Client-controlled multiplier values
+* Client-controlled game results
+* Client-controlled bet values
+* Stale buttons
+* Old callback queries
+* Simultaneous commands
+* Simultaneous game actions
+* Game-state manipulation
+* Balance-update races
+* Negative bet values
+* Zero-value edge cases
+* Decimal/rounding problems
+* Floating-point money calculations
+* Authorization bypasses
+* User ID manipulation
+* Chat ID manipulation
+* Cross-game state contamination
+* Restart-related exploits
+
+The server must always determine:
+
+* User
+* Game
+* Bet
+* Result
+* Multiplier
+* Payout
+* Balance change
+
+Never trust values supplied by the Telegram client for financial decisions.
+
+For every vulnerability discovered:
+
+1. Explain the problem.
+2. Explain the possible impact.
+3. Fix it.
+4. Add a regression test.
+
+⸻
+
+7. 💰 FINANCIAL LEDGER & BALANCE SAFETY
+
+Audit EVERY location where money is added, removed or refunded.
+
+Every balance-changing operation must have a unique transaction/reference ID.
+
+Examples:
+
+* Deposit
+* Bet
+* Win
+* Loss
+* Refund
+* Withdrawal
+* Bonus
+* Promotion
+* Admin adjustment
+
+Prevent:
+
+* Duplicate credits
+* Duplicate payouts
+* Duplicate refunds
+* Duplicate withdrawals
+* Negative balance exploits
+* Race-condition balance corruption
+* Lost transactions
+
+Use proper database transactions and atomic operations.
+
+Do NOT use one global lock for all financial operations.
+
+⸻
+
+8. 💳 AUTOMATIC CRYPTO DEPOSIT SYSTEM
+
+The existing deposit system uses NOWPayments to generate addresses and QR codes.
+
+When a player chooses a coin:
+
+Player selects coin
+↓
+NOWPayments generates payment/address
+↓
+Address + payment ID + user + coin/network stored permanently
+↓
+Correct blockchain monitored
+↓
+Transaction detected
+↓
+Transaction verified
+↓
+Existing processing message sent
+↓
+Required confirmations reached
+↓
+Existing confirmation message sent
+↓
+Correct amount credited
+↓
+Deposit marked CREDITED
+
+The backend must monitor the exact generated address and correct blockchain/network.
+
+A BTC deposit must never be credited as LTC/SOL/etc.
+
+Pending deposits must survive bot restarts.
+
+The system must recover if:
+
+* webhook fails
+* webhook is delayed
+* blockchain API times out
+* bot restarts
+* monitoring worker crashes
+* external provider temporarily fails
+
+Use persistent database state.
+
+Do NOT rely only on in-memory dictionaries.
+
+Duplicate protection
+
+A blockchain transaction must NEVER credit twice.
+
+Use transaction hash/payment ID and database-level idempotency protection.
+
+If:
+
+Deposit detected → processing → bot crashes → restart
+
+the same transaction must not be credited twice.
+
+A legitimate deposit should never simply disappear.
+
+⸻
+
+9. 💸 WITHDRAWAL SYSTEM
+
+Audit the entire withdrawal system for:
+
+* Authorization
+* Race conditions
+* Duplicate withdrawals
+* Duplicate callbacks
+* Balance locking
+* Balance deduction
+* Accept/reject flow
+* Failed withdrawals
+* Recovery after restart
+* Incorrect statuses
+
+OWNER BUTTON BUG
+
+The owner account:
+
+@arshxy
+
+sometimes receives:
+
+“This is not your button”
+
+when trying to accept/reject withdrawals.
+
+Find the actual cause.
+
+Check:
+
+* Numeric Telegram user ID
+* Username handling
+* Callback authorization
+* Withdrawal ID
+* Message ownership
+* Admin configuration
+* Environment variables
+* Old callback buttons
+* Database IDs
+
+Fix the authorization correctly.
+
+Do NOT simply remove authorization checks.
+
+Test:
+
+AUTHORIZED OWNER → ACCEPT
+AUTHORIZED OWNER → REJECT
+NON-OWNER → ACCEPT
+NON-OWNER → REJECT
+
+Non-authorized users must remain blocked.
+
+⸻
+
+10. 🎨 WITHDRAWAL UI
+
+The current withdrawal coin interface looks cheap and inconsistent.
+
+It uses poor Unicode emoji/text formatting and does not match the deposit interface.
+
+Redesign the withdrawal coin-selection interface so it matches the deposit interface.
+
+Use the same:
+
+* Visual hierarchy
+* Button structure
+* Spacing
+* Coin presentation
+* Design language
+* Professional appearance
+
+Do NOT break the existing withdrawal functionality while changing the UI.
+
+⸻
+
+11. 🧩 PREMIUM TELEGRAM CUSTOM EMOJIS — BUTTONS ONLY
+
+This is a very specific requirement.
+
+I want Telegram Premium/Custom Emojis ONLY on buttons/inline keyboards.
+
+Do NOT use Premium/Custom Emojis inside normal bot messages.
+
+Do NOT use them inside:
+
+* Game result messages
+* Captions
+* Descriptions
+* Deposit messages
+* Withdrawal messages
+* Normal text
+* Game animations
+
+Normal messages should continue using normal Unicode emojis where appropriate.
+
+Current problem
+
+Some buttons are showing broken text such as:
+
+tgemoji<>3747
+
+instead of the actual Premium Telegram emoji.
+
+Find the ROOT CAUSE of this.
+
+Search the entire project for:
+
+* tgemoji
+* <>
+* malformed custom emoji IDs
+* invalid custom emoji formatting
+* broken Telegram entity construction
+* incorrect button formatting
+
+Fix the common implementation.
+
+Do NOT simply remove Premium Emojis from buttons.
+
+I specifically want:
+
+Buttons → Premium/Custom Telegram Emojis
+
+Normal messages → Normal text/Unicode emojis
+
+Game animations → Existing Telegram game emojis
+
+Never expose internal emoji IDs to users.
+
+If a custom emoji cannot be rendered correctly in a particular button, use a clean normal emoji fallback instead of showing broken text.
+
+Audit every inline keyboard.
+
+⸻
+
+12. 🔗 REFERRAL SYSTEM
+
+The referral system currently has problems.
+
+When users try to generate/use their referral link, sometimes the bot gives no response.
+
+Fix the entire referral architecture.
+
+Required flow:
+
+User requests referral
+↓
+Valid referral link generated
+↓
+New user enters through referral
+↓
+Referral attribution stored
+↓
+Valid invited member counted
+↓
+Leaderboard updated
+
+The referral destination should be the Rollers Casino group, according to the current business requirement.
+
+However, do NOT invent an unsupported Telegram mechanism.
+
+Inspect Telegram’s actual capabilities and the current bot permissions.
+
+If group invite links are required, make sure the bot has the necessary permissions and membership events are tracked correctly.
+
+⸻
+
+13. 🏆 REFERRAL LEADERBOARD
+
+The leaderboard must be based on authoritative database data.
+
+It must not count:
+
+* duplicate users
+* repeated events
+* fake entries
+* self-referrals
+* arbitrary /start messages
+* invalid membership events
+
+A user who genuinely invited 25 valid members should have 25.
+
+A user who invited 10 should have 10.
+
+No fake multipliers.
+
+No manual manipulation.
+
+Protect against referral abuse and race conditions.
+
+⸻
+
+14. 🤖 COMMANDS SOMETIMES DON’T RESPOND
+
+Players sometimes send commands and the bot does nothing.
+
+Find out why.
+
+Audit:
+
+* Telegram update processing
+* Command handlers
+* Handler conflicts
+* Exceptions
+* Event loop blocking
+* Database connection exhaustion
+* HTTP timeouts
+* Telegram rate limits
+* Webhook/polling issues
+* Deadlocks
+* Background worker overload
+* Cancelled tasks
+* Errors being swallowed by try/except
+
+A command must never silently disappear.
+
+It should:
+
+1. Execute successfully,
+2. Return a useful error,
+3. Or safely retry.
+
+⸻
+
+15. 🚀 HIGH-LOAD / 5,000+ COMMUNITY
+
+The bot now operates in a much larger community.
+
+It must handle many simultaneous operations:
+
+* Games
+* Deposits
+* Withdrawals
+* Referrals
+* Commands
+* Profiles
+* Bonuses
+* Animations
+* Admin actions
+* Balance updates
+
+These must operate concurrently.
+
+One user’s activity must never freeze the entire bot.
+
+Audit:
+
+* Asyncio
+* Task scheduling
+* Database pool
+* HTTP connection pool
+* Telegram API calls
+* Rate limiting
+* Background workers
+* Memory
+* CPU
+* Queue sizes
+
+Use controlled concurrency.
+
+Do not create unlimited tasks.
+
+Do not create a single global bottleneck.
+
+⸻
+
+16. 🛡️ GAME MONEY RECOVERY
+
+Every money-related game must be recoverable.
+
+Example:
+
+BET ACCEPTED
+↓
+BALANCE DEDUCTED
+↓
+GAME STARTED
+↓
+RESULT
+↓
+PAYOUT/REFUND
+↓
+FINISHED
+
+If the bot crashes after the bet is deducted but before payout:
+
+The restart/recovery system must detect the unfinished transaction and safely resolve it.
+
+Never:
+
+* Lose the player’s money
+* Pay twice
+* Refund twice
+
+⸻
+
+17. 📡 TELEGRAM API RELIABILITY
+
+Audit every Telegram API operation.
+
+Handle correctly:
+
+* RetryAfter
+* Timeouts
+* Connection failures
+* Message-not-found
+* Edit conflicts
+* Rate limits
+* Cancelled tasks
+
+Use bounded retries and exponential backoff where appropriate.
+
+Telegram API failures must not crash the entire application.
+
+⸻
+
+18. 🧠 BACKGROUND TASK SAFETY
+
+Every important background task must have:
+
+* Exception handling
+* Structured logging
+* Recovery where safe
+* Health monitoring
+
+If one task crashes, the entire bot must NOT crash.
+
+Logs should contain useful information such as:
+
+* Game ID
+* User ID
+* Chat ID
+* Deposit ID
+* Transaction ID
+* Withdrawal ID
+* Operation
+* Timestamp
+
+Never log passwords, private keys, API secrets or sensitive credentials.
+
+⸻
+
+19. 🔄 RESTART RECOVERY
+
+Test the bot restarting during:
+
+* Deposit monitoring
+* Game animation
+* Player turn
+* Payout
+* Refund
+* Withdrawal processing
+* Referral processing
+
+After restart:
+
+* Pending deposits must resume
+* Active/recoverable games must be handled safely
+* Financial transactions must remain consistent
+* No duplicate payouts
+* No duplicate refunds
+* No duplicate deposits
+
+⸻
+
+20. 🧪 LOAD TESTING
+
+Do not claim the bot is fixed simply because it starts.
+
+Perform concurrency/load testing.
+
+Test:
+
+* 10 simultaneous games
+* 50 simultaneous games
+* 100 simultaneous games
+* Multiple game types simultaneously
+* Rapid player inputs
+* Simultaneous deposits
+* Simultaneous withdrawals
+* Referral activity
+* Commands during heavy gameplay
+
+Also test:
+
+* Database delay
+* Telegram API delay
+* Telegram rate limiting
+* Blockchain API timeout
+* NOWPayments timeout
+* Individual game task crash
+* Bot restart
+
+The objective is:
+
+HIGH LOAD → BOT REMAINS RESPONSIVE
+
+⸻
+
+21. 🔎 FIND PROBLEMS I DID NOT MENTION
+
+This is extremely important.
+
+Do not only fix the bugs listed in this message.
+
+I want you to inspect the codebase yourself and find other problems.
+
+Specifically audit:
+
+* Money handling
+* Game logic
+* Game exploits
+* Deposits
+* Withdrawals
+* Refunds
+* Referrals
+* Bonuses
+* Telegram callbacks
+* Admin permissions
+* Database
+* Concurrency
+* Background tasks
+* API integrations
+* Commands
+* UI
+* Animations
+* Security
+* Restart recovery
+
+If you find something suspicious, investigate it.
+
+⸻
+
+22. 🚨 PRODUCTION STANDARD
+
+Rollers Casino now has 5,000+ community members.
+
+I have spent approximately 10 months building and continuously fixing this casino.
+
+I have given a lot of effort into this project and I don’t want to keep giving members excuses for:
+
+* Deposits not arriving
+* Games freezing
+* Bot crashes
+* Broken buttons
+* Wrong results
+* Fake multipliers
+* Withdrawal problems
+* Referral problems
+* Commands not responding
+* Exploits
+* Lag
+* Refund problems
+* Broken emojis
+
+I want the codebase brought to a serious production standard.
+
+The target is:
+
+NO LOST DEPOSITS
+
+NO DUPLICATE PAYOUTS
+
+NO LOST REFUNDS
+
+NO FAKE RESULTS
+
+NO EXPLOITABLE GAME LOGIC
+
+NO BROKEN AUTHORIZATION
+
+NO BROKEN WITHDRAWAL ACTIONS
+
+NO BROKEN REFERRAL TRACKING
+
+NO BROKEN PREMIUM EMOJI BUTTONS
+
+NO RAW EMOJI IDs VISIBLE TO USERS
+
+NO STUCK ANIMATIONS
+
+NO GLOBAL FREEZES
+
+NO SILENT COMMAND FAILURES
+
+NO UNHANDLED CRASHES
+
+NO CROSS-GAME STATE CORRUPTION
+
+⸻
+
+23. FINAL REQUIREMENT — DO NOT SAY “FIXED” WITHOUT TESTING
+
+After implementation, provide a complete report:
+
+1. Problems discovered
+2. Root cause of each major problem
+3. Files changed
+4. Database changes
+5. Database indexes/constraints added
+6. Game changes
+7. Security fixes
+8. Deposit changes
+9. Withdrawal changes
+10. Referral changes
+11. Emoji/button changes
+12. Concurrency changes
+13. Recovery mechanisms
+14. Tests performed
+15. Load-test results
+16. Security tests
+17. Financial safety tests
+18. Remaining limitations
+
+If something could not actually be tested, explicitly write:
+
+NOT VERIFIED
+
+Do not tell me something is fixed merely because the code was changed.
+
+⸻
+
+FINAL PRIORITY
+
+Treat Rollers Casino as a production financial application, not a simple Telegram bot.
+
+Prioritize:
+
+Financial correctness > visual effects
+
+Security > convenience
+
+Reliable games > animation speed
+
+Recoverability > temporary patches
+
+Testing > saying “done”
+
+Root-cause fixes > quick fixes
+
+Start with the complete audit.
+
+Do not make destructive changes before understanding the existing architecture.
